@@ -4,6 +4,7 @@ import { Search } from 'lucide-react'; // アイコン用に lucide-react をイ
 
 export default function Home() {
   // ダミーの画像データ。実際にはAPIなどから取得します。
+  // 画像グリッドを有効にするため、この定義をコンポーネント内に保持します。
   const images = Array.from({ length: 32 }, (_, i) => `https://picsum.photos/seed/${i + 1}/500/500`);
 
   return (
@@ -44,21 +45,24 @@ export default function Home() {
       </div>
 
       {/* 画像グリッドセクション */}
-      <div className="mx-auto max-w-7xl px-4 py-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 -mt-16 relative z-20"> 
+        <h3 className="text-2xl font-bold text-white mb-6">最新のAIアート</h3>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {/*
+          {/* 改善点4: コメントアウトを外し、グリッドを有効化 */}
           {images.map((src, index) => (
-            <div key={index} className="aspect-square overflow-hidden rounded-lg">
+            <div key={index} className="aspect-square overflow-hidden rounded-lg shadow-2xl transition hover:shadow-indigo-500/50">
               <Image
                 src={src}
                 alt={`Generated image ${index + 1}`}
                 width={500}
                 height={500}
-                className="h-full w-full object-cover transition-transform duration-300 hover:scale-110"
+                // 画像がロードされるまで最小の高さを設定
+                placeholder="blur" 
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
               />
             </div>
           ))}
-          */}
         </div>
       </div>
     </main>
