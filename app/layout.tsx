@@ -17,6 +17,10 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: "Free Images",
   description: "This is a website for free, AI-generated images",
+  // ↓ Google Adsenseプロパティを追加
+  other: {
+    'google-adsense-account': 'ca-pub-6897468555074184',
+  },
 };
 
 export default function RootLayout({
