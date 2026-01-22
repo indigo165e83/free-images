@@ -10,8 +10,7 @@ generator client {
 }
 
 datasource db {
-  // MariaDB uses the "mysql" provider in Prisma
-  provider     = "mysql"
+  provider     = "postgresql"
   url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
