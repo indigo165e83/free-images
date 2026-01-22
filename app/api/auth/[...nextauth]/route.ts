@@ -1,4 +1,2 @@
-// This file exports the handlers from your auth.ts configuration.
-// It creates the API endpoints that Auth.js uses to perform its magic.
-export { handlers as GET, handlers as POST } from "@/auth"
-
+import { handlers } from "@/auth" // auth.ts から handlers オブジェクトをインポート
+export const { GET, POST } = handlers // handlers 内にある GET と POST 関数を分割代入してエクスポート
