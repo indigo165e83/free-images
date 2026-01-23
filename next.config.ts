@@ -13,11 +13,14 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/seed/**', // picsum.photos の特定のパスからの読み込みを許可
       },
-      // もし将来的にGCPやAWSのストレージを使う場合、ここに追加します
-      // {
-      //   protocol: 'https',
-      //   hostname: 'storage.googleapis.com',
-      // },
+      {
+        protocol: "https",
+        hostname: "*.googleusercontent.com", // Googleログインのアイコン用
+      },
+      {
+        protocol: "https",
+        hostname: "*.s3.ap-northeast-1.amazonaws.com", // S3の画像用
+      },
     ],
   },
 };
