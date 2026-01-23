@@ -3,8 +3,16 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import fs from "node:fs/promises";
-import path from "node:path";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+// S3クライアントの準備
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
 
 export async function uploadImage(formData: FormData) {
   // 1. ログインチェック
@@ -17,30 +25,36 @@ export async function uploadImage(formData: FormData) {
   
   if (!file || file.size === 0) return;
 
-  // 3. ファイルを public/uploads フォルダに保存
+  // 3. ファイル名の作成 (被らないように日時をつける)
   const buffer = Buffer.from(await file.arrayBuffer());
-  // ファイル名が被らないように日付をつける
-  const fileName = `${Date.now()}-${file.name.replace(/\s/g, "_")}`; 
-  const uploadDir = path.join(process.cwd(), "public/uploads");
-  
-  // フォルダが無ければ自動で作る
+  const fileName = `${Date.now()}-${file.name.replace(/\s/g, "_")}`;
+
+  // 4. AWS S3へアップロード
   try {
-    await fs.mkdir(uploadDir, { recursive: true });
-    await fs.writeFile(path.join(uploadDir, fileName), buffer);
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: fileName,
+      Body: buffer,
+      ContentType: file.type,
+    });
+    await s3Client.send(command);
   } catch (error) {
-    console.error("File save error:", error);
-    throw new Error("画像の保存に失敗しました");
+    console.error("S3 Upload Error:", error);
+    throw new Error("S3へのアップロードに失敗しました");
   }
 
-  // 4. データベースに記録
+  // 5. データベースにURLを保存
+  // S3の公開URL形式: https://{バケット名}.s3.{リージョン}.amazonaws.com/{ファイル名}
+  const s3Url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+
   await prisma.image.create({
     data: {
-      url: `/uploads/${fileName}`, // ブラウザからアクセスするパス
+      url: s3Url,
       prompt: prompt || "",
       userId: session.user.id,
     },
   });
 
-  // 5. 画面を更新
+  // 6. 画面更新
   revalidatePath("/");
 }
