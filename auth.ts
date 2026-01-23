@@ -1,14 +1,15 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "@/lib/prisma" // 修正: create new... ではなく import する
+// import { PrismaClient } from "@prisma/client"
 
 // Initialize Prisma Client
-const prisma = new PrismaClient()
+// const prisma = new PrismaClient()
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Connect Auth.js to your database
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma), // importしたprismaを使う
   // Configure one or more authentication providers
   providers: [
     Google({
