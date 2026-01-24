@@ -1,9 +1,8 @@
-// app/page.tsx
 import Image from 'next/image';
-import { Search } from 'lucide-react'; // アイコン用に lucide-react をインストール (pnpm add lucide-react)
 import { auth, signIn, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { uploadImage } from './actions/imageActions'; // さっき作ったアクション
+import { uploadImage } from './actions/imageActions';
+import { generateImage } from './actions/generateImage'; // ▼ 追加: 生成アクションをインポート
 
 export default async function Home() {
   const session = await auth();
@@ -11,12 +10,13 @@ export default async function Home() {
   // データベースから新しい順に画像を取得
   const dbImages = await prisma.image.findMany({
     orderBy: { createdAt: "desc" },
+    include: { tags: true }, // タグも一緒に取得
   });
 
   return (
     <main className="min-h-screen bg-gray-900 text-white">
       {/* ヒーローセクション */}
-      <div className="relative flex h-[50vh] flex-col items-center justify-center bg-indigo-900/20">
+      <div className="relative flex min-h-[60vh] flex-col items-center justify-center bg-indigo-900/20 pt-20 pb-10">
         <header className="absolute top-0 flex w-full max-w-7xl items-center justify-between p-6">
           <h1 className="text-2xl font-bold">Free Images</h1>
           
@@ -34,55 +34,90 @@ export default async function Home() {
           </div>
         </header>
 
-        <h2 className="text-4xl font-bold mb-6">AI Art Gallery</h2>
+        <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          AI Art Gallery
+        </h2>
         
-        {/* ▼▼▼ 投稿フォーム (ログイン中のみ表示) ▼▼▼ */}
+        {/* ▼▼▼ 投稿エリア (ログイン中のみ表示) ▼▼▼ */}
         {session?.user && (
-          <div className="w-full max-w-2xl px-4 z-10">
-            <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
-              <h3 className="mb-4 font-bold text-indigo-400">画像をアップロード</h3>
-              <form action={uploadImage} className="flex flex-col gap-4 sm:flex-row">
+          <div className="w-full max-w-4xl px-4 z-10 grid gap-6 md:grid-cols-2">
+            
+            {/* 1. AI生成フォーム (NEW!) */}
+            <div className="bg-gray-800/80 p-6 rounded-xl border border-indigo-500/50 shadow-xl backdrop-blur-sm">
+              <h3 className="mb-4 font-bold text-lg text-indigo-300 flex items-center gap-2">
+                ✨ AIで新しく生成
+              </h3>
+              <form action={generateImage} className="flex flex-col gap-3">
+                <textarea
+                  name="prompt"
+                  placeholder="どんな画像を作りますか？ (例: 宇宙を旅する猫、サイバーパンクな東京)"
+                  required
+                  className="w-full h-24 rounded-lg bg-gray-900 px-4 py-3 border border-gray-700 focus:border-indigo-500 outline-none resize-none"
+                />
+                <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
+                  AIで生成する (タグ自動付与)
+                </button>
+                <p className="text-xs text-gray-500 text-center">※ 生成には10〜20秒ほどかかります</p>
+              </form>
+            </div>
+
+            {/* 2. 手動アップロードフォーム */}
+            <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 shadow-xl backdrop-blur-sm">
+              <h3 className="mb-4 font-bold text-gray-400 text-sm">または手持ちの画像をアップロード</h3>
+              <form action={uploadImage} className="flex flex-col gap-4">
                 <input
                   type="file"
                   name="file"
                   accept="image/*"
                   required
-                  className="flex-1 text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-indigo-600 file:text-white file:border-0 hover:file:bg-indigo-500 cursor-pointer"
+                  className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-gray-700 file:text-white file:border-0 cursor-pointer"
                 />
                 <input
                   type="text"
                   name="prompt"
-                  placeholder="プロンプト (例: cute rabbit)"
-                  className="flex-1 rounded-lg bg-gray-900 px-4 py-2 border border-gray-700 focus:border-indigo-500 outline-none"
+                  placeholder="説明文 (タグ用)"
+                  className="w-full rounded-lg bg-gray-900 px-4 py-2 border border-gray-700 focus:border-gray-500 outline-none"
                 />
-                <button type="submit" className="bg-indigo-600 px-6 py-2 rounded-lg font-bold hover:bg-indigo-500 transition">
-                  投稿
+                <button type="submit" className="w-full bg-gray-700 py-2 rounded-lg font-bold hover:bg-gray-600 transition">
+                  アップロード
                 </button>
               </form>
             </div>
+
           </div>
         )}
       </div>
 
       {/* 画像グリッド */}
       <div className="mx-auto max-w-7xl px-4 py-12">
-        <h3 className="text-xl font-bold mb-6 border-l-4 border-indigo-500 pl-4">最新の投稿</h3>
+        <h3 className="text-xl font-bold mb-6 border-l-4 border-indigo-500 pl-4">最新のコレクション</h3>
         
         {dbImages.length === 0 ? (
-          <p className="text-gray-500 text-center py-10">まだ画像がありません。最初の1枚を投稿してみましょう！</p>
+          <div className="text-center py-20 text-gray-500">
+            <p className="text-xl">まだ画像がありません</p>
+            <p className="mt-2">AIで最初の1枚を作りましょう！</p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {dbImages.map((image) => (
-              <div key={image.id} className="group relative aspect-square overflow-hidden rounded-lg bg-gray-800">
+              <div key={image.id} className="group relative aspect-square overflow-hidden rounded-lg bg-gray-800 shadow-lg cursor-pointer">
                 <Image
                   src={image.url}
                   alt={image.prompt || "AI Image"}
                   fill
-                  className="object-cover transition duration-300 group-hover:scale-110"
+                  className="object-cover transition duration-500 group-hover:scale-110"
                 />
-                {/* ホバー時にプロンプトを表示 */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                  <p className="text-xs text-white line-clamp-2">{image.prompt}</p>
+                {/* オーバーレイ */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                  <p className="text-xs text-white line-clamp-2 font-medium mb-1">{image.prompt}</p>
+                  {/* タグ表示 */}
+                  <div className="flex flex-wrap gap-1">
+                    {image.tags.slice(0, 3).map(tag => (
+                      <span key={tag.id} className="text-[10px] bg-indigo-600/80 px-1.5 py-0.5 rounded text-white">
+                        #{tag.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
