@@ -20,10 +20,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   // Callbacks are used to control what happens when an action is performed.
   callbacks: {
-    // Add the user ID to the session object
     session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+      if (session.user&& user) {
+        session.user.id = user.id;  //ID割り当て
+        session.user.role = user.role;  // DBにある role の値を、セッションにもコピーする
       }
       return session
     },
