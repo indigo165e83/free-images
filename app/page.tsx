@@ -3,6 +3,7 @@ import { auth, signIn, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadImage } from './actions/imageActions';
 import { generateImage } from './actions/generateImage'; // AI画像生成アクションをインポート
+import Link from "next/link";
 
 export default async function Home() {
   const session = await auth();
@@ -107,6 +108,7 @@ export default async function Home() {
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {dbImages.map((image) => (
+              <Link href={`/image/${image.id}`} key={image.id}>
               <div key={image.id} className="group relative aspect-square overflow-hidden rounded-lg bg-gray-800 shadow-lg cursor-pointer">
                 <Image
                   src={image.url}
@@ -127,6 +129,7 @@ export default async function Home() {
                   </div>
                 </div>
               </div>
+          </Link>
             ))}
           </div>
         )}
