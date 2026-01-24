@@ -54,3 +54,6 @@ memo.txt
 
 # Prisma
 /app/generated/prisma
+
+# docs
+/docs
