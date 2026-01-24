@@ -24,7 +24,7 @@ model User {
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime  @default(now()) @updatedAt
   accounts      Account[]
   sessions      Session[]
   images        Image[] // Relation to the Image model
@@ -44,7 +44,7 @@ model Account {
   id_token          String? @db.Text
   session_state     String?
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  updatedAt         DateTime  @default(now()) @updatedAt
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
@@ -56,7 +56,7 @@ model Session {
   userId       String
   expires      DateTime
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -76,7 +76,7 @@ model Image {
   prompt    String?  @db.Text
   url       String   // URL of the image stored in S3
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   // Relation to the User model
   userId    String
