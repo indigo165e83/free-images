@@ -98,7 +98,7 @@ export default async function Home() {
 
       {/* 画像グリッド */}
       <div className="mx-auto max-w-7xl px-4 py-12">
-        <h3 className="text-xl font-bold mb-6 border-l-4 border-indigo-500 pl-4">最新のコレクション</h3>
+        <h3 className="text-xl font-bold mb-6 border-l-4 border-indigo-500 pl-4">ギャラリー</h3>
         
         {dbImages.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
