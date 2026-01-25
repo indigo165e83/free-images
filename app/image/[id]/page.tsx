@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import DeleteButton from "./DeleteButton";
+import TagEditor from "./TagEditor";
 
 // Next.js 15以降の非同期params対応 (v14でも動作します)
 interface Props {
@@ -52,16 +53,11 @@ export default async function ImageDetailPage({ params }: Props) {
           </div>
 
           {/* タグ一覧 */}
-          <div>
-            <h2 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">TAGS</h2>
-            <div className="flex flex-wrap gap-2">
-              {image.tags.map((tag) => (
-                <span key={tag.id} className="bg-indigo-900 text-indigo-200 px-3 py-1 rounded-full text-sm">
-                  #{tag.name}
-                </span>
-              ))}
-            </div>
-          </div>
+          <TagEditor 
+            imageId={image.id} 
+            tags={image.tags} 
+            isAdmin={isAdmin} 
+          />
 
           {/* メタデータ (作成日など) */}
           <div className="mt-auto border-t border-gray-700 pt-6 text-sm text-gray-400">
