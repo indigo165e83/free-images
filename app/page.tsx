@@ -3,6 +3,7 @@ import { auth, signIn, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadImage } from './actions/imageActions';
 import { generateImage } from './actions/generateImage'; // AI画像生成アクションをインポート
+import { editImage } from './actions/editImage';  // AI画像編集（image2image）アクションをインポート
 import Link from "next/link";
 
 export default async function Home() {
@@ -46,28 +47,7 @@ export default async function Home() {
         {session?.user && (
           <div className={`w-full px-4 z-10 grid gap-6 ${isAdmin ? "max-w-4xl md:grid-cols-2" : "max-w-md md:grid-cols-1"}`}>
             
-            {/* 1. AI生成フォーム(管理者 ADMIN のみ表示)*/}
-            {isAdmin&& (
-              <div className="bg-gray-800/80 p-6 rounded-xl border border-indigo-500/50 shadow-xl backdrop-blur-sm">
-                <h3 className="mb-4 font-bold text-lg text-indigo-300 flex items-center gap-2">
-                  ✨ AIで新しく生成
-                </h3>
-                <form action={generateImage} className="flex flex-col gap-3">
-                  <textarea
-                    name="prompt"
-                    placeholder="どんな画像を作りますか？ (例: 宇宙を旅する猫、サイバーパンクな東京)"
-                    required
-                    className="w-full h-24 rounded-lg bg-gray-900 px-4 py-3 border border-gray-700 focus:border-indigo-500 outline-none resize-none"
-                  />
-                  <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
-                    AIで生成する (タグ自動付与)
-                  </button>
-                  <p className="text-xs text-gray-500 text-center">※ 生成には10〜20秒ほどかかります</p>
-                </form>
-              </div>
-            )}
-
-            {/* 2. 手動アップロードフォーム(全員表示) */}
+            {/* 1. 手動アップロードフォーム(全員表示) */}
             <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 shadow-xl backdrop-blur-sm">
               <h3 className="mb-4 font-bold text-gray-400 text-sm">
                 {isAdmin ? "または手持ちの画像をアップロード" : "手持ちの画像をアップロード"}
@@ -92,6 +72,54 @@ export default async function Home() {
               </form>
             </div>
 
+            {/* 2. AI生成フォーム(管理者 ADMIN のみ表示)*/}
+            {isAdmin&& (
+              <div className="bg-gray-800/80 p-6 rounded-xl border border-indigo-500/50 shadow-xl backdrop-blur-sm">
+                <h3 className="mb-4 font-bold text-lg text-indigo-300 flex items-center gap-2">
+                  ✨ AIで新しく生成
+                </h3>
+                <form action={generateImage} className="flex flex-col gap-3">
+                  <textarea
+                    name="prompt"
+                    placeholder="どんな画像を作りますか？ (例: 宇宙を旅する猫、サイバーパンクな東京)"
+                    required
+                    className="w-full h-24 rounded-lg bg-gray-900 px-4 py-3 border border-gray-700 focus:border-indigo-500 outline-none resize-none"
+                  />
+                  <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
+                    AIで生成する (タグ自動付与)
+                  </button>
+                  <p className="text-xs text-gray-500 text-center">※ 生成には10〜20秒ほどかかります</p>
+                </form>
+              </div>
+            )}
+
+            {/* 3. 画像編集フォーム (管理者限定) */}
+            {isAdmin && (
+              <div className="bg-gray-800/80 p-6 rounded-xl border border-pink-500/50 shadow-xl backdrop-blur-sm">
+                <h3 className="mb-4 font-bold text-lg text-pink-300 flex items-center gap-2">
+                  🎨 AI画像編集 (Img2Img)
+                </h3>
+                <form action={editImage} className="flex flex-col gap-3">
+                  <input
+                    type="file"
+                    name="file"
+                    accept="image/*"
+                    required
+                    className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-gray-700 file:text-white file:border-0 cursor-pointer"
+                  />
+                  <textarea
+                    name="prompt"
+                    placeholder="どう変更しますか？ (例: この猫を油絵風にして、背景を宇宙に)"
+                    required
+                    className="w-full h-20 rounded-lg bg-gray-900 px-4 py-3 border border-gray-700 focus:border-pink-500 outline-none resize-none"
+                  />
+                  <button type="submit" className="w-full bg-gradient-to-r from-pink-600 to-orange-600 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
+                    画像を編集・生成する
+                  </button>
+                </form>
+              </div>
+            )}
+            
           </div>
         )}
       </div>
