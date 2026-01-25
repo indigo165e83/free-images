@@ -1,7 +1,9 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import DeleteButton from "./DeleteButton";
 
 // Next.js 15以降の非同期params対応 (v14でも動作します)
 interface Props {
@@ -9,8 +11,10 @@ interface Props {
 }
 
 export default async function ImageDetailPage({ params }: Props) {
-  const { id } = await params;
+  const session = await auth(); //セッション判定
+  const isAdmin = session?.user?.role === "ADMIN";  //管理者判定
 
+  const { id } = await params;
   // 1. データベースからIDで画像を検索
   const image = await prisma.image.findUnique({
     where: { id },
@@ -72,6 +76,10 @@ export default async function ImageDetailPage({ params }: Props) {
           >
             ← ギャラリーに戻る
           </Link>
+          {/* 管理者のみ削除ボタンを表示 */}
+          {isAdmin && (
+              <DeleteButton imageId={image.id} />
+          )}
         </div>
       </div>
     </main>
