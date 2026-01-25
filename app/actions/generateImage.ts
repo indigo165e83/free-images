@@ -4,7 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-// 標準SDKを使用
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import crypto from "crypto";
 
@@ -19,16 +18,20 @@ const s3Client = new S3Client({
   },
 });
 
-// Gemini APIクライアントの初期化
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // ---------------------------------------------------------
-// 2. 生成アクション (nano banana 版)
+// 2. 生成アクション
 // ---------------------------------------------------------
 export async function generateImage(formData: FormData) {
   // ログインチェック
   const session = await auth();
   if (!session?.user?.id) throw new Error("ログインが必要です");
+
+  // APIの直接操作による管理者以外のアクセスをブロック
+  if (session.user.role !== "ADMIN") {
+    throw new Error("権限がありません");
+  }
 
   const prompt = formData.get("prompt") as string;
   if (!prompt) return;
@@ -41,68 +44,65 @@ export async function generateImage(formData: FormData) {
     // =========================================================
     console.log("🎨 Generating Image with nano-banana-pro-preview...");
     
-    // 画像生成モデルの取得
-    // ※ check-models.js で確認したモデル名を使用
     const imageModel = genAI.getGenerativeModel({ model: "nano-banana-pro-preview" });
 
-    // 画像生成を実行
-    // (現状のSDKでは generateContent で画像も生成できる場合があります)
     const result = await imageModel.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      // 画像生成のオプションを指定（モデルによって異なります）
-      generationConfig: {
-        // 例: 1枚生成、JPEG形式など
-        // sampleCount: 1, 
-        // responseMimeType: "image/jpeg" 
-      }
     });
 
     const response = await result.response;
     
-    // 生成された画像のバイナリデータを取得
-    // ※ SDKのバージョンやモデルの仕様によって、バイナリの取得方法が異なる可能性があります。
-    // ここでは一般的な方法を試します。
+    // 画像データの取得
     let imageBuffer: Buffer;
     
-    // パターン1: インラインデータとして返ってくる場合
     if (response.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
         const base64Data = response.candidates[0].content.parts[0].inlineData.data;
         imageBuffer = Buffer.from(base64Data, 'base64');
-    } 
-    // パターン2: 他の形式の場合 (モデルのドキュメントを確認する必要があります)
-    else {
-        // 現時点での fallback: ダミー画像 (もし nano banana がうまく動かない場合)
-        console.warn("⚠️ nano banana からの画像データ取得に失敗したか、形式が不明です。ダミー画像を使用します。");
+    } else {
+        console.warn("⚠️ Fallback: using dummy image");
         const dummyRes = await fetch(`https://placehold.co/1024x1024/png?text=${encodeURIComponent("nano banana fail")}`);
         const arrayBuffer = await dummyRes.arrayBuffer();
         imageBuffer = Buffer.from(arrayBuffer);
     }
 
-
     // =========================================================
-    // ステップ B: Gemini でタグを生成 (テキストモデル)
+    // ステップ B: 画像を解析してタグを生成 (Vision機能)
     // =========================================================
-    console.log("🏷️ Generating Tags with Gemini...");
+    console.log("👁️ Analyzing Generated Image with Gemini...");
     
-    // タグ生成にはテキスト用のモデルを使用 (gemini-2.5-flash など)
-    const textModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // 画像認識モデルを使用
+    const visionModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     
     const tagPrompt = `
-      以下の画像生成プロンプトから、この画像を表す検索用タグを日本語で5つ生成してください。
-      出力はカンマ区切りのテキストのみにしてください。
+      この生成された画像を分析し、検索用のタグを日本語で5～10個程度生成してください。
+      ユーザーのプロンプトは「${prompt}」でした。
+      以下の4つの観点をバランスよく含めてください：
+      1. 被写体（何が描かれているか）
+      2. 画風（アニメ、写真、油絵など）
+      3. 雰囲気（明るい、怖い、サイバーパンクなど）
+      4. メインカラー
       
-      プロンプト: "${prompt}"
-      出力例: ウサギ, 動物, 自然, かわいい, イラスト
+      出力はカンマ区切りのテキストのみにしてください。
+      出力例: 猫, 動物, 宇宙服, SF, サイバーパンク, ネオン, 青, かわいい, 3Dレンダリング, 未来
     `;
     
-    const tagResult = await textModel.generateContent(tagPrompt);
+    // 画像データをGeminiに渡す形式に変換
+    const imagePart = {
+      inlineData: {
+        data: imageBuffer.toString("base64"),
+        mimeType: "image/jpeg",
+      },
+    };
+    
+    // プロンプトと画像データの両方を渡す
+    const tagResult = await visionModel.generateContent([tagPrompt, imagePart]);
     const tagText = tagResult.response.text();
     
     const tags = tagText
       .split(",")
       .map(t => t.trim())
       .filter(t => t.length > 0)
-      .slice(0, 5);
+      .slice(0, 10);
 
     console.log("✅ Tags:", tags);
 
@@ -116,9 +116,8 @@ export async function generateImage(formData: FormData) {
     const day = String(now.getDate()).padStart(2, '0');
     const uuid = crypto.randomUUID();
 
-    // ファイル名とMIMEタイプ (JPEG前提)
     const fileName = `public/${year}/${month}/${day}/nano-${uuid}.jpg`;
-    const contentType = "image/jpeg"; // または image/png
+    const contentType = "image/jpeg";
 
     await s3Client.send(new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
@@ -152,7 +151,6 @@ export async function generateImage(formData: FormData) {
     
   } catch (error: any) {
     console.error("Generation Error:", error);
-    // エラーの詳細を投げる
     throw new Error(`生成処理に失敗しました: ${error.message}`);
   }
 }

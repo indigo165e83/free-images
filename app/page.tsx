@@ -83,7 +83,7 @@ export default async function Home() {
                 <input
                   type="text"
                   name="prompt"
-                  placeholder="説明文 (タグ用)"
+                  placeholder="画像の説明文を入力 (タグは自動で生成)"
                   className="w-full rounded-lg bg-gray-900 px-4 py-2 border border-gray-700 focus:border-gray-500 outline-none"
                 />
                 <button type="submit" className="w-full bg-gray-700 py-2 rounded-lg font-bold hover:bg-gray-600 transition">
