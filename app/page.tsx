@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import { auth, signIn, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { uploadImage } from './actions/imageActions';
+import { uploadImage } from './actions/uploadImage'; // 画像アップロードアクションをインポート
 import { generateImage } from './actions/generateImage'; // AI画像生成アクションをインポート
 import { editImage } from './actions/editImage';  // AI画像編集（image2image）アクションをインポート
 import Link from "next/link";
@@ -48,9 +48,9 @@ export default async function Home() {
           <div className={`w-full px-4 z-10 grid gap-6 ${isAdmin ? "max-w-4xl md:grid-cols-2" : "max-w-md md:grid-cols-1"}`}>
             
             {/* 1. 手動アップロードフォーム(全員表示) */}
-            <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 shadow-xl backdrop-blur-sm">
-              <h3 className="mb-4 font-bold text-gray-400 text-sm">
-                {isAdmin ? "または手持ちの画像をアップロード" : "手持ちの画像をアップロード"}
+              <div className="bg-gray-800/80 p-6 rounded-xl border border-blue-500/50 shadow-xl backdrop-blur-sm">
+                <h3 className="mb-4 font-bold text-lg text-blue-300 flex items-center gap-2">
+                手持ちの画像をアップロード
               </h3>
               <form action={uploadImage} className="flex flex-col gap-4">
                 <input
@@ -66,7 +66,7 @@ export default async function Home() {
                   placeholder="画像の説明文を入力 (タグは自動で生成)"
                   className="w-full rounded-lg bg-gray-900 px-4 py-2 border border-gray-700 focus:border-gray-500 outline-none"
                 />
-                <button type="submit" className="w-full bg-gray-700 py-2 rounded-lg font-bold hover:bg-gray-600 transition">
+                <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-teal-500 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
                   アップロード
                 </button>
               </form>
