@@ -46,11 +46,17 @@ export default function RootLayout({
           <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm">© 2026 Free Images. All rights reserved.</p>
             <div className="flex gap-6 text-sm">
+              <Link href="/tips" className="hover:text-white transition" target="_blank" rel="noopener noreferrer"> 
+                画像生成のコツ
+              </Link>              
               <Link href="/privacy-policy" className="hover:text-white transition">
                 プライバシーポリシー
               </Link>
               {/* お問い合わせフォームができたらここに追加 */}
               {/* <Link href="/contact" className="hover:text-white transition">お問い合わせ</Link> */}
+              <a href="https://forms.gle/feuypDPrskygUFFT6" className="hover:underline" target="_blank" rel="noopener noreferrer">
+                お問い合わせ
+              </a>
             </div>
           </div>
         </footer>
