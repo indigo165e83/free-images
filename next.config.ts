@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Server Actionsのボディサイズ制限を緩和 (10MBに設定)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },  
 };
 
 export default nextConfig;
