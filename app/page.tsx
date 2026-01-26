@@ -69,6 +69,8 @@ export default async function Home() {
                 <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-teal-500 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
                   アップロード
                 </button>
+                {/* ファイルサイズ制限の注釈 */}
+                <p className="text-xs text-gray-500 text-center">※ アップロード可能な画像サイズは最大4MBまでです</p>
               </form>
             </div>
 
@@ -116,6 +118,8 @@ export default async function Home() {
                   <button type="submit" className="w-full bg-gradient-to-r from-pink-600 to-orange-600 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
                     画像を編集・生成する
                   </button>
+                {/* ファイルサイズ制限の注釈 */}
+                <p className="text-xs text-gray-500 text-center">※ アップロード可能な画像サイズは最大4MBまでです</p>
                 </form>
               </div>
             )}

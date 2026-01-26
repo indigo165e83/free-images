@@ -23,10 +23,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Server Actionsのボディサイズ制限を緩和 (10MBに設定)
+  // Server Actionsのボディサイズ制限を緩和 (4MBに設定)
+  // Vercel のインフラ（Serverless Functions）自体に「リクエストボディは最大 4.5MB まで」という物理的な制限があります。
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: '4mb',
     },
   },  
 };
