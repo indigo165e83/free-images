@@ -81,9 +81,14 @@ export async function saveImageToS3(
   const day = String(now.getDate()).padStart(2, '0');
   const uuid = crypto.randomUUID();
 
-  // mimeTypeから拡張子を簡易的に決定
-  const ext = mimeType.includes("jpeg") ? "jpg" : mimeType.includes("png") ? "png" : "bin";
-  
+  // 拡張子の判定
+  let ext = "bin";
+  if (mimeType.includes("jpeg") || mimeType.includes("jpg")) ext = "jpg";
+  else if (mimeType.includes("png")) ext = "png";
+  else if (mimeType.includes("webp")) ext = "webp";
+  else if (mimeType.includes("gif")) ext = "gif";
+  else if (mimeType.includes("svg")) ext = "svg";
+
   // フォルダ構成: public/YYYY/MM/DD/prefix-uuid.ext
   const fileName = `public/${year}/${month}/${day}/${prefix}-${uuid}.${ext}`;
 
