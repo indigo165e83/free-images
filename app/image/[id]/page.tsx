@@ -5,10 +5,68 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import DeleteButton from "./DeleteButton";
 import TagEditor from "./TagEditor";
+import { Metadata } from "next";
 
 // Next.js 15以降の非同期params対応 (v14でも動作します)
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+// Google AdSense対応 動的メタデータの生成関数
+// ページコンポーネントと同じ params を受け取ります
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  // DBから画像情報を取得
+  // (Next.jsは同じリクエスト内での重複Fetchを自動で重複排除してくれるため、
+  // ページコンポーネント側での再取得と合わせてもパフォーマンスへの影響は軽微です)
+  const image = await prisma.image.findUnique({
+    where: { id },
+    include: { tags: true },
+  });
+
+  if (!image) {
+    return {
+      title: "画像が見つかりません | Free Images",
+    };
+  }
+
+  // プロンプトが長い場合は切り詰めてタイトルにする
+  const titleText = image.prompt
+    ? image.prompt.slice(0, 40) + (image.prompt.length > 40 ? "..." : "")
+    : "AI Generated Image";
+  
+  const title = `${titleText} | Free Images`;
+  
+  // 説明文にタグを含める
+  const tagsText = image.tags.length > 0 
+    ? `タグ: ${image.tags.map(t => t.name).join(", ")}` 
+    : "";
+  const description = `AIで生成された画像です。${tagsText}`;
+
+  return {
+    title: title,
+    description: description,
+    // SNSシェア用 (OGP)
+    openGraph: {
+      title: title,
+      description: description,
+      images: [
+        {
+          url: image.url, // シェア時にこの画像が大きく表示されます
+          width: 800,
+          height: 800,
+          alt: image.prompt || "AI Image",
+        },
+      ],
+    },
+    // Twitterカード設定
+    twitter: {
+      card: "summary_large_image",
+      title: title,
+      description: description,
+      images: [image.url],
+    },
+  };
 }
 
 export default async function ImageDetailPage({ params }: Props) {
