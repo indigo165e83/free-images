@@ -1,10 +1,10 @@
-import Image from 'next/image';
 import { auth, signIn, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadImage } from './actions/uploadImage'; // 画像アップロードアクションをインポート
 import { generateImage } from './actions/generateImage'; // AI画像生成アクションをインポート
 import { editImage } from './actions/editImage';  // AI画像編集（image2image）アクションをインポート
 import Link from "next/link";
+import ImageGallery from '@/components/ImageGallery';
 
 export default async function Home() {
   const session = await auth();
@@ -12,7 +12,8 @@ export default async function Home() {
   //管理者権限を持っているかチェック (ADMINの場合のみ true)
   const isAdmin = session?.user?.role === "ADMIN";
 
-  // データベースから新しい順に画像を取得
+  // データベースから新しい順に画像を全権取得
+  // (検索と絞り込みはクライアント側の ImageGallery コンポーネントで行います)
   const dbImages = await prisma.image.findMany({
     orderBy: { createdAt: "desc" },
     include: { tags: true }, // タグも一緒に取得
@@ -128,44 +129,8 @@ export default async function Home() {
         )}
       </div>
 
-      {/* 画像グリッド */}
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <h3 className="text-xl font-bold mb-6 border-l-4 border-indigo-500 pl-4">ギャラリー</h3>
-        
-        {dbImages.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            <p className="text-xl">まだ画像がありません</p>
-            <p className="mt-2">AIで最初の1枚を作りましょう！</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {dbImages.map((image) => (
-              <Link href={`/image/${image.id}`} key={image.id}>
-              <div key={image.id} className="group relative aspect-square overflow-hidden rounded-lg bg-gray-800 shadow-lg cursor-pointer">
-                <Image
-                  src={image.url}
-                  alt={image.prompt || "AI Image"}
-                  fill
-                  className="object-cover transition duration-500 group-hover:scale-110"
-                />
-                {/* オーバーレイ */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                  <p className="text-xs text-white line-clamp-2 font-medium mb-1">{image.prompt}</p>
-                  {/* タグ表示 */}
-                  <div className="flex flex-wrap gap-1">
-                    {image.tags.slice(0, 3).map(tag => (
-                      <span key={tag.id} className="text-[10px] bg-indigo-600/80 px-1.5 py-0.5 rounded text-white">
-                        #{tag.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-          </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* ▼▼▼ 検索機能付きギャラリーを表示 (データを渡すだけ) ▼▼▼ */}
+      <ImageGallery images={dbImages} isAdmin={isAdmin} />      
     </main>
   );
 }
