@@ -1,0 +1,137 @@
+"use client";
+
+import { useState, useMemo } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import Fuse from 'fuse.js';
+import { Search } from 'lucide-react';
+
+// 画像データの型定義
+type ImageType = {
+  id: string;
+  url: string;
+  prompt: string | null;
+  tags: { id: string; name: string }[];
+  createdAt: Date;
+};
+
+type Props = {
+  images: ImageType[];
+  isAdmin: boolean;
+};
+
+export default function ImageGallery({ images, isAdmin }: Props) {
+  const [query, setQuery] = useState("");
+
+  // Fuse.js の設定
+  const fuse = useMemo(() => {
+    return new Fuse(images, {
+      keys: ['prompt', 'tags.name'], 
+      threshold: 0.3,
+      includeScore: true,
+      // ▼▼▼ 複数キーワード検索のための設定 ▼▼▼
+      useExtendedSearch: true, // 拡張検索モードを有効化
+    });
+  }, [images]);
+
+  // 検索結果の取得
+  const filteredImages = useMemo(() => {
+    if (!query.trim()) return images;
+
+    // 入力されたクエリを加工する
+    // 1. 全角カンマや読点を半角カンマに統一
+    // 2. スペースも区切り文字として扱う
+    // 3. 空白を除去
+    const searchTerms = query
+      .replace(/、/g, ',')
+      .replace(/，/g, ',')
+      .replace(/\s+/g, ',') // スペースもカンマ扱いに（OR検索の場合）
+      .split(',')
+      .filter(term => term.trim().length > 0)
+      .map(term => term.trim());
+
+    if (searchTerms.length === 0) return images;
+
+    // Fuse.jsの拡張検索構文を作成
+    // OR検索の場合: "猫 | 宇宙 | 青"
+    // AND検索にしたい場合は: "'猫 '宇宙 '青" (シングルクォートをつける)
+    const fuseQuery: any = {
+      $or: searchTerms.map(term => ({
+        $or: [
+          { prompt: term },
+          { 'tags.name': term }
+        ]
+      }))
+    };
+
+    return fuse.search(fuseQuery).map(result => result.item);
+  }, [query, images, fuse]);
+
+  return (
+    <>
+      {/* 検索フォーム */}
+      <div className="w-full max-w-2xl mt-10 relative group mx-auto px-4">
+        <div className="relative">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            // ▼▼▼ プレースホルダーを変更 ▼▼▼
+            placeholder="キーワードで検索 (例: 猫, 宇宙, 青)"
+            className="w-full rounded-full bg-gray-800/80 border border-gray-600 py-4 pl-14 pr-6 text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 outline-none backdrop-blur-sm transition-all shadow-lg"
+          />
+        </div>
+        {/* ▼▼▼ 補足説明を追加 ▼▼▼ */}
+        <p className="text-xs text-gray-500 mt-2 ml-4">
+          ※ 複数のキーワードはカンマ(,)またはスペースで区切って検索できます
+        </p>
+      </div>
+
+      {/* 検索結果の表示エリア */}
+      <div className="mx-auto max-w-7xl px-4 py-12">
+        <div className="flex items-center justify-between mb-6 border-l-4 border-indigo-500 pl-4">
+          <h3 className="text-xl font-bold">
+            {query ? `"${query}" の検索結果 (${filteredImages.length}件)` : "ギャラリー"}
+          </h3>
+        </div>
+        
+        {filteredImages.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">
+            <p className="text-xl">
+              {query ? "条件に一致する画像は見つかりませんでした" : "まだ画像がありません"}
+            </p>
+            {isAdmin && !query && <p className="mt-2">AIで最初の1枚を作りましょう！</p>}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {filteredImages.map((image) => (
+              <Link href={`/image/${image.id}`} key={image.id}>
+                <div className="group relative aspect-square overflow-hidden rounded-lg bg-gray-800 shadow-lg cursor-pointer">
+                  <Image
+                    src={image.url}
+                    alt={image.prompt || "AI Image"}
+                    fill
+                    className="object-cover transition duration-500 group-hover:scale-110"
+                  />
+                  {/* オーバーレイ */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                    <p className="text-xs text-white line-clamp-2 font-medium mb-1">{image.prompt}</p>
+                    {/* タグ表示 */}
+                    <div className="flex flex-wrap gap-1">
+                      {image.tags.slice(0, 3).map(tag => (
+                        <span key={tag.id} className="text-[10px] bg-indigo-600/80 px-1.5 py-0.5 rounded text-white">
+                          #{tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
