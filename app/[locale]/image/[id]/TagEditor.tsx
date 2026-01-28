@@ -3,11 +3,12 @@
 
 import { useState, useTransition } from "react";
 import { removeTagFromImage, addTagToImage } from "@/app/actions/tagActions";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 type Tag = {
   id: string;
-  name: string;
+  nameJa: string;
+  nameEn: string;
 };
 
 type Props = {
@@ -20,8 +21,18 @@ export default function TagEditor({ imageId, tags, isAdmin }: Props) {
   const [isPending, startTransition] = useTransition();
   const [newTag, setNewTag] = useState("");
 
+  const locale = useLocale();
   // 翻訳関数を初期化
   const t = useTranslations('HomePage');
+
+  // ヘルパー関数: ロケールに応じたタグ名を取得
+  // (locale変数が定義された後に書く必要があります)
+  const getTagName = (tag: Tag) => {
+    if (locale === 'en') {
+      return tag.nameEn || tag.nameJa;
+    }
+    return tag.nameJa || tag.nameEn;
+  };
 
   // タグ削除処理
   const handleRemove = (tagId: string) => {
@@ -60,7 +71,8 @@ export default function TagEditor({ imageId, tags, isAdmin }: Props) {
                 : "bg-indigo-900 text-indigo-200" // 一般用デザイン
             }`}
           >
-            #{tag.name}
+            {/* 言語に応じて表示を切り替え */}
+            #{getTagName(tag)}
             
             {/* 管理者のみ削除ボタン(×)を表示 */}
             {isAdmin && (

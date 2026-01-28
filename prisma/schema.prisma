@@ -74,7 +74,6 @@ model VerificationToken {
 
 model Image {
   id        String   @id @default(cuid())
-  prompt    String?  @db.Text
   promptJa    String?  @db.Text
   promptEn    String?  @db.Text
   url       String   // URL of the image stored in S3
@@ -90,12 +89,11 @@ model Image {
 
 model Tag {
   id     String  @id @default(cuid())
-  name   String  @unique // 同じ名前のタグは重複しないように
-  nameJa   String?  // @uniqueしない。プログラムで制御する
-  nameEn   String?  // @uniqueしない。プログラムで制御する
+  nameJa   String  // @uniqueしない。プログラムで制御する
+  nameEn   String  // @uniqueしない。プログラムで制御する
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt  
   images Image[]
 
-  //@@unique([nameJa, nameEn])  // 日本語と英語のペアで重複を防ぐ 複合ユニーク制約（Composite Unique Constraint）
+  @@unique([nameJa, nameEn])  // 日本語と英語のペアで重複を防ぐ 複合ユニーク制約（Composite Unique Constraint）
 }
