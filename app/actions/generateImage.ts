@@ -49,12 +49,24 @@ export async function generateImage(formData: FormData) {
     await prisma.image.create({
       data: {
         url: s3Url,
-        prompt: prompt,
+        // promptJaとpromptEnの両方に保存
+        promptJa: prompt,
+        promptEn: prompt,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({
-            where: { name: tag },
-            create: { name: tag },
+            // 複合ユニークキー (nameJa_nameEn) を指定
+            where: { 
+              nameJa_nameEn: {
+                nameJa: tag,
+                nameEn: tag,
+              }
+            },
+            // 新しいカラム名で保存
+            create: { 
+              nameJa: tag, 
+              nameEn: tag 
+            },
           })),
         },
       },
