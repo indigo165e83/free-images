@@ -5,14 +5,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Fuse from 'fuse.js';
 import { Search } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 // 画像データの型定義
 type ImageType = {
   id: string;
   url: string;
-  prompt: string | null;
-  tags: { id: string; name: string }[];
+  promptJa: string | null;
+  promptEn: string | null;
+  tags: { id: string; nameJa: string; nameEn: string }[];
   createdAt: Date;
 };
 
@@ -23,12 +24,29 @@ type Props = {
 
 export default function ImageGallery({ images, isAdmin }: Props) {
   const [query, setQuery] = useState("");
-  // 2. 翻訳関数の初期化
+  // 翻訳関数の初期化
   const t = useTranslations('HomePage');
+  const locale = useLocale(); // 現在の言語を取得 ('ja' or 'en')
+
+  // 言語に応じたテキストを取得するヘルパー関数
+  const getLocalizedPrompt = (image: ImageType) => {
+    if (locale === 'en') {
+      return image.promptEn || image.promptJa; // 英語がなければ日本語をフォールバック表示
+    }
+    return image.promptJa || image.promptEn;
+  };  
+
+  const getLocalizedTagName = (tag: { nameJa: string; nameEn: string }) => {
+    if (locale === 'en') {
+      return tag.nameEn || tag.nameJa;
+    }
+    return tag.nameJa || tag.nameEn;
+  };
+
   // Fuse.js の設定
   const fuse = useMemo(() => {
     return new Fuse(images, {
-      keys: ['prompt', 'tags.name'], 
+      keys: ['promptJa', 'promptEn', 'tags.nameJa', 'tags.nameEn'], 
       threshold: 0.3,
       includeScore: true,
       // ▼▼▼ 複数キーワード検索のための設定 ▼▼▼
@@ -118,7 +136,7 @@ export default function ImageGallery({ images, isAdmin }: Props) {
                 <div className="group relative aspect-square overflow-hidden rounded-lg bg-gray-800 shadow-lg cursor-pointer">
                   <Image
                     src={image.url}
-                    alt={image.prompt || "AI Image"}
+                    alt={getLocalizedPrompt(image) || "AI Image"}
                     fill
                     className="object-cover transition duration-500 group-hover:scale-110"
                   />
@@ -129,7 +147,7 @@ export default function ImageGallery({ images, isAdmin }: Props) {
                     <div className="flex flex-wrap gap-1">
                       {image.tags.slice(0, 3).map(tag => (
                         <span key={tag.id} className="text-[10px] bg-indigo-600/80 px-1.5 py-0.5 rounded text-white">
-                          #{tag.name}
+                          #{getLocalizedTagName(tag)}
                         </span>
                       ))}
                     </div>
