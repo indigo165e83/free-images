@@ -1,0 +1,43 @@
+{
+  "HomePage": {
+    "title": "Free Images",
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "aiGalleryTitle": "AI Art Gallery",
+    "uploadTitle": "手持ちの画像をアップロード",
+    "uploadPlaceholder": "画像の説明文を入力 (タグは自動で生成)",
+    "uploadButton": "アップロード",
+    "uploadNote": "※ アップロード可能な画像サイズは最大4MBまでです",
+    "aiGenerateTitle": "AIで新しく生成",
+    "generatePlaceholder": "どんな画像を作りますか？ (例: 宇宙を旅する猫、サイバーパンクな東京)",
+    "generateButton": "AIで生成する (タグ自動付与)",
+    "generateNote": "※ 生成には10〜20秒ほどかかります",
+    "aiEditTitle": "AI画像編集 (Img2Img)",
+    "editPlaceholder": "どう変更しますか？ (例: この猫を油絵風にして、背景を宇宙に)",
+    "editButton": "画像を編集・生成する",
+    "editNote": "※ 画像サイズは最大4MBまで",
+    "galleryTitle": "ギャラリー",
+    "searchResultTitle": "\"{query}\" の検索結果 ( {count} ) 件",
+    "noImages": "まだ画像がありません",
+    "noImagesSearch": "条件に一致する画像は見つかりませんでした",
+    "createFirst": "AIで最初の1枚を作りましょう！",
+    "searchPlaceholder": "キーワードで検索 (例: 猫, 宇宙, 青)",
+    "searchNote": "※ 複数のキーワードはカンマ(,)またはスペースで区切って検索できます",
+    "backToGalleryButton": "← ギャラリーに戻る",
+    "deleteImageConfirm": "本当にこの画像を削除しますか？\nこの操作は取り消せません。",
+    "deletingStatus": "削除中...",
+    "deleteImageButton": "この画像を削除する (管理者のみ)",
+    "deleteTagConfirm": "このタグを削除しますか？",
+    "updatingTag": "更新中...",
+    "nothingTag": "タグはありません",
+    "addTagPlaceholder": "新しいタグを追加...",
+    "addTag": "追加"
+  },
+  "Footer": {
+    "description": "このサイトは無料でAIが生成した画像を提供するウェブサイトです",
+    "tips": "画像生成のコツ",
+    "privacyPolicy": "プライバシーポリシー",
+    "contact": "お問い合わせ",
+    "rightsReserved": "© 2026 Free Images. All rights reserved."
+  } 
+}
