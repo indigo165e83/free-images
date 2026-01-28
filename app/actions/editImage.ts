@@ -71,12 +71,24 @@ export async function editImage(formData: FormData) {
     await prisma.image.create({
       data: {
         url: s3Url,
-        prompt: prompt,
+        // promptJaとpromptEnの両方に保存 (翻訳API未実装のため同じ値)
+        promptJa: prompt,
+        promptEn: prompt,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({
-            where: { name: tag },
-            create: { name: tag },
+            // 複合ユニーク制約に対応した where 句
+            where: {
+              nameJa_nameEn: {
+                nameJa: tag,
+                nameEn: tag,
+              },
+            },
+            // 新しいカラム名で保存
+            create: {
+              nameJa: tag,
+              nameEn: tag,
+            },
           })),
         },
       },

@@ -16,6 +16,22 @@ interface Props {
   }>;
 }
 
+// ヘルパー関数: 言語に応じたプロンプトを取得
+const getLocalizedPrompt = (image: any, locale: string) => {
+  if (locale === 'en') {
+    return image.promptEn || image.promptJa;
+  }
+  return image.promptJa || image.promptEn;
+};
+
+// ヘルパー関数: 言語に応じたタグ名を取得
+const getLocalizedTagName = (tag: any, locale: string) => {
+  if (locale === 'en') {
+    return tag.nameEn || tag.nameJa;
+  }
+  return tag.nameJa || tag.nameEn;
+};
+
 // Google AdSense対応 動的メタデータの生成関数
 // ページコンポーネントと同じ params を受け取ります
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -36,18 +52,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  // 言語に応じたプロンプトを取得
+  const displayPrompt = getLocalizedPrompt(image, locale);
+  
   // プロンプトが長い場合は切り詰めてタイトルにする
-  const titleText = image.prompt
-    ? image.prompt.slice(0, 40) + (image.prompt.length > 40 ? "..." : "")
+  const titleText = displayPrompt
+    ? displayPrompt.slice(0, 40) + (displayPrompt.length > 40 ? "..." : "")
     : "AI Generated Image";
   
   const title = `${titleText} | Free Images`;
   
   // 説明文にタグを含める
   const tagsText = image.tags.length > 0 
-    ? `タグ: ${image.tags.map(t => t.name).join(", ")}` 
+    ? `${locale === 'en' ? 'Tags' : 'タグ'}: ${image.tags.map((t: any) => getLocalizedTagName(t, locale)).join(", ")}`
     : "";
-  const description = `AIで生成された画像です。${tagsText}`;
+
+  const description = locale === 'en'
+    ? `AI-generated image. ${tagsText}`
+    : `AIで生成された画像です。${tagsText}`;    
 
   return {
     title: title,
@@ -61,7 +83,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: image.url, // シェア時にこの画像が大きく表示されます
           width: 800,
           height: 800,
-          alt: image.prompt || "AI Image",
+          alt: displayPrompt || "AI Image",
         },
       ],
     },
@@ -93,6 +115,9 @@ export default async function ImageDetailPage({ params }: Props) {
   // 画像が見つからない場合は404ページへ
   if (!image) return notFound();
 
+  // 表示用テキストの決定
+  const displayPrompt = getLocalizedPrompt(image, locale);
+
   return (
     <main className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-5xl bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col md:flex-row">
@@ -101,7 +126,7 @@ export default async function ImageDetailPage({ params }: Props) {
         <div className="md:w-2/3 bg-black relative min-h-[400px] md:min-h-[600px]">
           <Image
             src={image.url}
-            alt={image.prompt || "Detail Image"}
+            alt={displayPrompt || "Detail Image"}
             fill
             className="object-contain"
             priority // 詳細ページなので優先読み込み
@@ -113,7 +138,7 @@ export default async function ImageDetailPage({ params }: Props) {
           <div>
             <h2 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">PROMPT</h2>
             <p className="text-lg font-medium leading-relaxed text-gray-100">
-              {image.prompt}
+              {displayPrompt}
             </p>
           </div>
 
@@ -127,12 +152,12 @@ export default async function ImageDetailPage({ params }: Props) {
           {/* メタデータ (作成日など) */}
           <div className="mt-auto border-t border-gray-700 pt-6 text-sm text-gray-400">
             <p>Created by: <span className="text-white">{image.user?.name || "Unknown"}</span></p>
-            <p>Date: {image.createdAt.toLocaleDateString()}</p>
+            <p>Date: {image.createdAt.toLocaleDateString(locale)}</p>
           </div>
 
           {/* 戻るボタン */}
           <Link 
-            href="/" 
+            href={`/${locale}`} // 現在の言語ルートに戻る 
             className="mt-4 text-center bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition"
           >
             {t('backToGalleryButton')}

@@ -30,16 +30,31 @@ export async function uploadImage(formData: FormData) {
       saveImageToS3(buffer, file.type, "upload")
     ]);
 
+    // プロンプトが空の場合はタグを結合して代用
+    const promptValue = prompt || tags.join(", ");
+
     // 4. DB保存
     await prisma.image.create({
       data: {
         url: s3Url,
-        prompt: prompt || tags.join(", "),
+        // promptJaとpromptEnの両方に保存
+        promptJa: promptValue,
+        promptEn: promptValue,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({
-            where: { name: tag },
-            create: { name: tag },
+            // 複合ユニークキー (nameJa_nameEn) を指定
+            where: { 
+              nameJa_nameEn: {
+                nameJa: tag,
+                nameEn: tag,
+              }
+            },
+            // 新しいカラム名で保存
+            create: { 
+              nameJa: tag, 
+              nameEn: tag 
+            },
           })),
         },
       },
