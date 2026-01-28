@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Fuse from 'fuse.js';
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 // 画像データの型定義
 type ImageType = {
@@ -22,7 +23,8 @@ type Props = {
 
 export default function ImageGallery({ images, isAdmin }: Props) {
   const [query, setQuery] = useState("");
-
+  // 2. 翻訳関数の初期化
+  const t = useTranslations('HomePage');
   // Fuse.js の設定
   const fuse = useMemo(() => {
     return new Fuse(images, {
@@ -78,13 +80,13 @@ export default function ImageGallery({ images, isAdmin }: Props) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             // ▼▼▼ プレースホルダーを変更 ▼▼▼
-            placeholder="キーワードで検索 (例: 猫, 宇宙, 青)"
+            placeholder={t('searchPlaceholder')}
             className="w-full rounded-full bg-gray-800/80 border border-gray-600 py-4 pl-14 pr-6 text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 outline-none backdrop-blur-sm transition-all shadow-lg"
           />
         </div>
         {/* ▼▼▼ 補足説明を追加 ▼▼▼ */}
         <p className="text-xs text-gray-500 mt-2 ml-4">
-          ※ 複数のキーワードはカンマ(,)またはスペースで区切って検索できます
+          {t('searchNote')}
         </p>
       </div>
 
@@ -92,7 +94,13 @@ export default function ImageGallery({ images, isAdmin }: Props) {
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex items-center justify-between mb-6 border-l-4 border-indigo-500 pl-4">
           <h3 className="text-xl font-bold">
-            {query ? `"${query}" の検索結果 (${filteredImages.length}件)` : "ギャラリー"}
+            {query ? 
+              t('searchResultTitle', { 
+                query: query, 
+                count: filteredImages.length 
+              }) 
+              : t('galleryTitle')
+            }
           </h3>
         </div>
         

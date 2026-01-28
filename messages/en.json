@@ -1,0 +1,43 @@
+{
+  "HomePage": {
+    "title": "Free Images",
+    "login": "Login",
+    "logout": "Logout",
+    "aiGalleryTitle": "AI Art Gallery",
+    "uploadTitle": "Upload Your Image",
+    "uploadPlaceholder": "Enter image description (Tags generated automatically)",
+    "uploadButton": "Upload",
+    "uploadNote": "* Maximum upload size is 4MB",
+    "aiGenerateTitle": "Generate with AI",
+    "generatePlaceholder": "What image do you want to create? (e.g. A cat traveling in space, Cyberpunk Tokyo)",
+    "generateButton": "Generate with AI (Auto-tagging)",
+    "generateNote": "* Generation takes about 10-20 seconds",
+    "aiEditTitle": "AI Image Editor (Img2Img)",
+    "editPlaceholder": "How would you like to change it? (e.g. Make this cat oil painting style, space background)",
+    "editButton": "Edit & Generate Image",
+    "editNote": "* Maximum image size is 4MB",
+    "galleryTitle": "Gallery",
+    "searchResultTitle": "Search results for \"{query}\" ( {count} )",
+    "noImages": "No images yet",
+    "noImagesSearch": "No images found matching your criteria",
+    "createFirst": "Let's create your first AI image!",
+    "searchPlaceholder": "Search keywords (e.g. cat, space, blue)",
+    "searchNote": "* Multiple keywords can be separated by comma(,) or space",
+    "backToGalleryButton": "← Back to Gallery",
+    "deleteImageConfirm": "Are you sure you want to delete this image?\nThis action cannot be undone.",
+    "deletingStatus": "Deleting...",
+    "deleteImageButton": "Delete this image (Admins only)",
+    "deleteTagConfirm": "Are you sure you want to delete this tag?",
+    "updatingTag": "Updating...",
+    "nothingTag": "No tags available",
+    "addTagPlaceholder": "Add a new tag...",
+    "addTag": "+Add"
+  },
+  "Footer": {
+    "description": "This is a website for free, AI-generated images",
+    "tips": "Tips for Generation",
+    "privacyPolicy": "Privacy Policy",
+    "contact": "Contact Us",
+    "rightsReserved": "© 2026 Free Images. All rights reserved."
+  } 
+}
