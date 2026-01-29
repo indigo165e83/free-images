@@ -46,11 +46,15 @@ export default function ImageGallery({ images, isAdmin }: Props) {
   // Fuse.js の設定
   const fuse = useMemo(() => {
     return new Fuse(images, {
-      keys: ['promptJa', 'promptEn', 'tags.nameJa', 'tags.nameEn'], 
-      threshold: 0.3,
+      keys: [
+        'promptJa', 
+        'promptEn', 
+        'tags.nameJa', 
+        'tags.nameEn'
+      ], 
+      threshold: 0.4, // より柔軟なマッチング（0.0=完全一致、1.0=何でも一致）
       includeScore: true,
-      // ▼▼▼ 複数キーワード検索のための設定 ▼▼▼
-      useExtendedSearch: true, // 拡張検索モードを有効化
+      ignoreLocation: true, // 位置に関係なくマッチング
     });
   }, [images]);
 
@@ -58,33 +62,26 @@ export default function ImageGallery({ images, isAdmin }: Props) {
   const filteredImages = useMemo(() => {
     if (!query.trim()) return images;
 
-    // 入力されたクエリを加工する
-    // 1. 全角カンマや読点を半角カンマに統一
-    // 2. スペースも区切り文字として扱う
-    // 3. 空白を除去
+    // 入力されたクエリをスペースやカンマで分割
     const searchTerms = query
-      .replace(/、/g, ',')
-      .replace(/，/g, ',')
-      .replace(/\s+/g, ',') // スペースもカンマ扱いに（OR検索の場合）
-      .split(',')
-      .filter(term => term.trim().length > 0)
-      .map(term => term.trim());
+      .replace(/、/g, ' ') // 全角読点をスペースに
+      .replace(/，/g, ' ') // 全角カンマをスペースに
+      .trim()
+      .split(/\s+/) // スペースで分割
+      .filter(term => term.length > 0);
 
     if (searchTerms.length === 0) return images;
 
-    // Fuse.jsの拡張検索構文を作成
-    // OR検索の場合: "猫 | 宇宙 | 青"
-    // AND検索にしたい場合は: "'猫 '宇宙 '青" (シングルクォートをつける)
-    const fuseQuery: any = {
-      $or: searchTerms.map(term => ({
-        $or: [
-          { prompt: term },
-          { 'tags.name': term }
-        ]
-      }))
-    };
+    // 各検索キーワードでOR検索を実行
+    // 複数のキーワードのいずれかにマッチする画像を返す
+    const allResults = new Set<ImageType>();
+    
+    searchTerms.forEach(term => {
+      const results = fuse.search(term);
+      results.forEach(result => allResults.add(result.item));
+    });
 
-    return fuse.search(fuseQuery).map(result => result.item);
+    return Array.from(allResults);
   }, [query, images, fuse]);
 
   return (
