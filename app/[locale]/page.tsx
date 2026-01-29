@@ -64,6 +64,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 {t('uploadTitle')}
               </h3>
               <form action={uploadImage} className="flex flex-col gap-4">
+                <input type="hidden" name="locale" value={locale} />
                 <input
                   type="file"
                   name="file"
@@ -92,6 +93,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   {t('aiGenerateTitle')}
                 </h3>
                 <form action={generateImage} className="flex flex-col gap-3">
+                  <input type="hidden" name="locale" value={locale} />
                   <textarea
                     name="prompt"
                     placeholder={t('generatePlaceholder')}

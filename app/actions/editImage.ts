@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateTagsWithGemini, saveImageToS3 } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, translatePrompt } from "@/lib/server-utils"; // 共通関数
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -61,33 +61,36 @@ export async function editImage(formData: FormData) {
     }
 
     // 3. 共通関数でタグ生成とS3保存を実行
-    const [tags, s3Url] = await Promise.all([
+    const [tags, s3Url, translatedPrompt] = await Promise.all([
       // 生成された画像に対してタグ付けを行う
       generateTagsWithGemini(outputBuffer, "image/jpeg", prompt),
-      saveImageToS3(outputBuffer, "image/jpeg", "edit")
+      saveImageToS3(outputBuffer, "image/jpeg", "edit"),
+      translatePrompt(prompt)
     ]);
 
     // 4. DB保存
     await prisma.image.create({
       data: {
         url: s3Url,
-        // promptJaとpromptEnの両方に保存 (翻訳API未実装のため同じ値)
-        promptJa: prompt,
-        promptEn: prompt,
+        // (日本語入力なら ja=入力, en=翻訳。英語入力なら en=入力, ja=翻訳 になっています)
+        promptJa: translatedPrompt.ja, 
+        promptEn: translatedPrompt.en,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({
             // 複合ユニーク制約に対応した where 句
             where: {
               nameJa_nameEn: {
-                nameJa: tag,
-                nameEn: tag,
+                // 念のため String() でキャストして型エラーを防ぐ
+                nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
+                nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
               },
             },
             // 新しいカラム名で保存
             create: {
-              nameJa: tag,
-              nameEn: tag,
+              // 念のため String() でキャストして型エラーを防ぐ
+              nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
+              nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
             },
           })),
         },
