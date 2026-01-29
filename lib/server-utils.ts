@@ -14,31 +14,105 @@ const s3Client = new S3Client({
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 /**
- * 画像バッファとコンテキストからタグを生成する
+ * プロンプトを日英翻訳する関数 (locale判定版)
+ * @param text 翻訳するテキスト
+ * @param locale 入力言語 ('ja' または 'en')
+ */
+export async function translatePrompt(text: string, locale: string = 'ja'): Promise<{ ja: string; en: string }> {
+  if (!text) return { ja: "", en: "" };
+
+  console.log(`🗣️ Translating Prompt with Gemini (locale: ${locale})...`);
+  
+  const isInputJapanese = locale === 'ja';
+  
+  // JSON出力が得意なモデルを使用
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `
+    You are a professional translator.
+    Translate the following text into both Japanese and English.
+    Return the result in strictly valid JSON format without markdown code blocks.
+    
+    Format:
+    {
+      "ja": "Japanese translation",
+      "en": "English translation"
+    }
+
+    Text to translate: "${text}"
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text().replace(/```json|```/g, "").trim();
+    const translation = JSON.parse(responseText);
+    
+    // JSONから翻訳結果を取得し、どちらかが空の場合は補完
+    let ja = translation.ja?.trim() || "";
+    let en = translation.en?.trim() || "";
+    
+    // 両方空の場合は、入力言語に応じて割り当て
+    if (!ja && !en) {
+      return isInputJapanese ? { ja: text, en: "" } : { ja: "", en: text };
+    }
+    
+    // ja だけが空の場合、入力が日本語なら ja に入力を割り当て
+    if (!ja && isInputJapanese) {
+      ja = text;
+    }
+    
+    // en だけが空の場合、入力が英語なら en に入力を割り当て
+    if (!en && !isInputJapanese) {
+      en = text;
+    }
+    
+    return { ja, en };
+  } catch (e) {
+    console.error("Translation failed:", e);
+    // 失敗時は入力言語に応じて割り当て
+    return isInputJapanese ? { ja: text, en: "" } : { ja: "", en: text };
+  }
+}
+
+/**
+ * 画像バッファとコンテキストからタグを生成する(日英対応版)
+ * 戻り値 { ja: string, en: string }[] 
  */
 export async function generateTagsWithGemini(
   imageBuffer: Buffer, 
   mimeType: string, 
-  promptContext: string
-): Promise<string[]> {
+  userPrompt: string
+): Promise<{ ja: string; en: string }[]> {
   console.log("👁️ Analyzing Image with Gemini for Tags...");
   
   // 画像認識が得意なモデルを使用 (gemini-2.5-flash)
   const visionModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const tagPrompt = `
-    この画像を分析し、検索用のタグを日本語で5～10個程度生成してください。
+    - この画像を分析し、検索用のタグを日本語で5～10個程度生成してください。
+      -【画像に関連するテキスト情報】: "${userPrompt}"
     
-    【画像に関連するテキスト情報】: "${promptContext}"
-    
-    以下の観点を含めてください：
-    1. 被写体（何が映っているか）
-    2. 画風（写真、実写、イラスト、アニメ、油絵、水彩画、CGなど）
-    3. 雰囲気（明るい、怖い、癒やし、かわいい、サイバーパンクなど）
-    4. メインカラー
+    - 以下の観点を含めてください：
+      1. 被写体（何が映っているか）
+      2. 画風（写真、実写、イラスト、アニメ、油絵、水彩画、CGなど）
+      3. 雰囲気（明るい、怖い、癒やし、かわいい、サイバーパンクなど）
+      4. メインカラー
 
-    出力はカンマ区切りのテキストのみにしてください。
-    出力例: 猫, 動物, 宇宙服, SF, サイバーパンク, ネオン, 青, かわいい, 3Dレンダリング, 未来
+    - 各タグには、英語版と日本語版の両方が必要です。
+    - 結果はマークダウンのコードブロックを使わず、厳密に有効なJSON形式（オブジェクトの配列）で返してください。
+      - 出力フォーマット:
+        [
+          { "en": "Cat", "ja": "猫" },
+          { "en": "Animal", "ja": "動物" }
+          { "en": "Spacesuit", "ja": "宇宙服" },
+          { "en": "Sci-Fi", "ja": "SF" },
+          { "en": "Cyberpunk", "ja": "サイバーパンク" },
+          { "en": "Neon", "ja": "ネオン" },
+          { "en": "Blue", "ja": "青" },
+          { "en": "Cute", "ja": "かわいい" },
+          { "en": "3D Rendering", "ja": "3Dレンダリング" },
+          { "en": "Future", "ja": "未来" }
+        ]
   `;
 
   const imagePart = {
@@ -51,19 +125,18 @@ export async function generateTagsWithGemini(
   try {
     const result = await visionModel.generateContent([tagPrompt, imagePart]);
     const response = await result.response;
-    const tagText = response.text();
+    const tagText = response.text().replace(/```json|```/g, "").trim();
 
-    const tags = tagText
-      .split(",")
-      .map(t => t.trim())
-      .filter(t => t.length > 0)
-      .slice(0, 10); // 最大10個
-
-    console.log("✅ Generated Tags:", tags);
-    return tags;
+    const tags= JSON.parse(tagText);
+    if (Array.isArray(tags)) {
+          // 最初の10個を取得
+          console.log("✅ Generated Tags:", tags.length);
+          return tags.slice(0, 10);
+    }
+    return [];
   } catch (error) {
     console.error("Tag Generation Error:", error);
-    return []; // エラー時は空配列を返す（処理を止めないため）
+    return []; // エラー時は空配列を返す
   }
 }
 

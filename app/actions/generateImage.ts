@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateTagsWithGemini, saveImageToS3 } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, translatePrompt } from "@/lib/server-utils"; // 共通関数
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -15,6 +15,7 @@ export async function generateImage(formData: FormData) {
   if (session.user.role !== "ADMIN") throw new Error("権限がありません");
 
   const prompt = formData.get("prompt") as string;
+  const locale = formData.get("locale") as string || 'ja';
   if (!prompt) return;
 
   try {
@@ -40,9 +41,10 @@ export async function generateImage(formData: FormData) {
     }
 
     // 3. 共通関数でタグ生成とS3保存を実行
-    const [tags, s3Url] = await Promise.all([
+    const [tags, s3Url, translatedPrompt] = await Promise.all([
       generateTagsWithGemini(imageBuffer, "image/jpeg", prompt),
-      saveImageToS3(imageBuffer, "image/jpeg", "generate")
+      saveImageToS3(imageBuffer, "image/jpeg", "generate"),
+      translatePrompt(prompt, locale)
     ]);
 
     // 4. DB保存
@@ -50,22 +52,24 @@ export async function generateImage(formData: FormData) {
       data: {
         url: s3Url,
         // promptJaとpromptEnの両方に保存
-        promptJa: prompt,
-        promptEn: prompt,
+        promptJa: translatedPrompt.ja,
+        promptEn: translatedPrompt.en,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({
             // 複合ユニークキー (nameJa_nameEn) を指定
             where: { 
               nameJa_nameEn: {
-                nameJa: tag,
-                nameEn: tag,
+                // 念のため String() でキャストして型エラーを防ぐ
+                nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
+                nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
               }
             },
             // 新しいカラム名で保存
             create: { 
-              nameJa: tag, 
-              nameEn: tag 
+              // 念のため String() でキャストして型エラーを防ぐ
+              nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
+              nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
             },
           })),
         },
