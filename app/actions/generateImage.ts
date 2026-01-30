@@ -42,10 +42,10 @@ export async function generateImage(formData: FormData) {
 
     // 3. 共通関数でタグ生成、S3保存、説明文生成を実行
     const [tags, s3Url, translatedPrompt, description] = await Promise.all([
-      generateTagsWithGemini(imageBuffer, "image/jpeg", prompt),
-      saveImageToS3(imageBuffer, "image/jpeg", "generate"),
+      generateTagsWithGemini(imageBuffer, "image/webp", prompt),
+      saveImageToS3(imageBuffer, "image/webp", "generate"),
       translatePrompt(prompt, locale),
-      generateDescriptionWithGemini(imageBuffer, "image/jpeg")
+      generateDescriptionWithGemini(imageBuffer, "image/webp")
     ]);
 
     // 4. DB保存
