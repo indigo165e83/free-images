@@ -58,12 +58,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         {session?.user && (
           <div className={`w-full px-4 z-10 grid gap-6 ${isAdmin ? "max-w-4xl md:grid-cols-2" : "max-w-md md:grid-cols-1"}`}>
             
-            {/* 1. 手動アップロードフォーム(全員表示) */}
+            {/* 1. 画像アップロードフォーム(全員表示) */}
               <div className="bg-gray-800/80 p-6 rounded-xl border border-blue-500/50 shadow-xl backdrop-blur-sm">
                 <h3 className="mb-4 font-bold text-lg text-blue-300 flex items-center gap-2">
                 {t('uploadTitle')}
               </h3>
-              <form action={uploadImage} className="flex flex-col gap-4">
+              <form action={uploadImage} className="flex flex-col gap-8">
                 <input type="hidden" name="locale" value={locale} />
                 <input
                   type="file"
@@ -71,12 +71,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   accept="image/*"
                   required
                   className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-gray-700 file:text-white file:border-0 cursor-pointer"
-                />
-                <input
-                  type="text"
-                  name="prompt"
-                  placeholder={t('uploadPlaceholder')}
-                  className="w-full rounded-lg bg-gray-900 px-4 py-2 border border-gray-700 focus:border-gray-500 outline-none"
                 />
                 <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-teal-500 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
                   {t('uploadButton')}
@@ -86,7 +80,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               </form>
             </div>
 
-            {/* 2. AI生成フォーム(管理者 ADMIN のみ表示)*/}
+            {/* 2. AI画像生成フォーム(管理者 ADMIN のみ表示)*/}
             {isAdmin&& (
               <div className="bg-gray-800/80 p-6 rounded-xl border border-indigo-500/50 shadow-xl backdrop-blur-sm">
                 <h3 className="mb-4 font-bold text-lg text-indigo-300 flex items-center gap-2">
@@ -108,13 +102,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               </div>
             )}
 
-            {/* 3. 画像編集フォーム (管理者限定) */}
+            {/* 3.  AI画像編集フォーム (管理者 ADMIN のみ表示) */}
             {isAdmin && (
               <div className="bg-gray-800/80 p-6 rounded-xl border border-pink-500/50 shadow-xl backdrop-blur-sm">
                 <h3 className="mb-4 font-bold text-lg text-pink-300 flex items-center gap-2">
                   {t('aiEditTitle')}
                 </h3>
                 <form action={editImage} className="flex flex-col gap-3">
+                  <input type="hidden" name="locale" value={locale} />
                   <input
                     type="file"
                     name="file"

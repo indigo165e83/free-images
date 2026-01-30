@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import DeleteButton from "./DeleteButton";
 import TagEditor from "./TagEditor";
+import PromptSection from "./PromptSection";
 import { Metadata } from "next";
 import { getTranslations } from 'next-intl/server';
 
@@ -22,6 +23,14 @@ const getLocalizedPrompt = (image: any, locale: string) => {
     return image.promptEn || image.promptJa;
   }
   return image.promptJa || image.promptEn;
+};
+
+// ヘルパー関数: 言語に応じた説明文を取得
+const getLocalizedDescription = (image: any, locale: string) => {
+  if (locale === 'en') {
+    return image.descriptionEn || image.descriptionJa;
+  }
+  return image.descriptionJa || image.descriptionEn;
 };
 
 // ヘルパー関数: 言語に応じたタグ名を取得
@@ -52,12 +61,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  // 言語に応じたプロンプトを取得
+  // 言語に応じた説明文とプロンプトを取得
+  const displayDescription = getLocalizedDescription(image, locale);
   const displayPrompt = getLocalizedPrompt(image, locale);
   
-  // プロンプトが長い場合は切り詰めてタイトルにする
-  const titleText = displayPrompt
-    ? displayPrompt.slice(0, 40) + (displayPrompt.length > 40 ? "..." : "")
+  // 説明文が長い場合は切り詰めてタイトルにする
+  const titleText = displayDescription || displayPrompt
+    ? (displayDescription || displayPrompt).slice(0, 40) + ((displayDescription || displayPrompt).length > 40 ? "..." : "")
     : "AI Generated Image";
   
   const title = `${titleText} | Free Images`;
@@ -68,8 +78,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : "";
 
   const description = locale === 'en'
-    ? `AI-generated image. ${tagsText}`
-    : `AIで生成された画像です。${tagsText}`;    
+    ? `${displayDescription || 'AI-generated image.'} ${tagsText}`
+    : `${displayDescription || 'AIで生成された画像です。'}${tagsText}`;    
 
   return {
     title: title,
@@ -83,7 +93,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: image.url, // シェア時にこの画像が大きく表示されます
           width: 800,
           height: 800,
-          alt: displayPrompt || "AI Image",
+          alt: displayDescription || "AI Image",
         },
       ],
     },
@@ -116,6 +126,7 @@ export default async function ImageDetailPage({ params }: Props) {
   if (!image) return notFound();
 
   // 表示用テキストの決定
+  const displayDescription = getLocalizedDescription(image, locale);
   const displayPrompt = getLocalizedPrompt(image, locale);
 
   return (
@@ -126,7 +137,7 @@ export default async function ImageDetailPage({ params }: Props) {
         <div className="md:w-2/3 bg-black relative min-h-[400px] md:min-h-[600px]">
           <Image
             src={image.url}
-            alt={displayPrompt || "Detail Image"}
+            alt={displayDescription || "Detail Image"}
             fill
             className="object-contain"
             priority // 詳細ページなので優先読み込み
@@ -135,12 +146,15 @@ export default async function ImageDetailPage({ params }: Props) {
 
         {/* 右側: 情報エリア */}
         <div className="md:w-1/3 p-8 flex flex-col gap-6">
-          <div>
-            <h2 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">PROMPT</h2>
-            <p className="text-lg font-medium leading-relaxed text-gray-100">
-              {displayPrompt}
-            </p>
-          </div>
+          {/* 説明文セクション */}
+          {displayDescription && (
+            <div>
+              <h2 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">DESCRIPTION</h2>
+              <p className="text-base font-medium leading-relaxed text-gray-100">
+                {displayDescription}
+              </p>
+            </div>
+          )}
 
           {/* タグ一覧 */}
           <TagEditor 
@@ -148,6 +162,9 @@ export default async function ImageDetailPage({ params }: Props) {
             tags={image.tags} 
             isAdmin={isAdmin} 
           />
+
+          {/* プロンプトセクション（折りたたみ式） */}
+          <PromptSection prompt={displayPrompt} />
 
           {/* メタデータ (作成日など) */}
           <div className="mt-auto border-t border-gray-700 pt-6 text-sm text-gray-400">
