@@ -15,6 +15,25 @@ const s3Client = new S3Client({
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 /**
+ * 画像バッファからメタデータ（width, height）を取得する
+ * @param imageBuffer 画像バッファ
+ * @returns {width: number, height: number}
+ */
+export async function getImageDimensions(imageBuffer: Buffer): Promise<{ width: number; height: number }> {
+  try {
+    const metadata = await sharp(imageBuffer).metadata();
+    return {
+      width: metadata.width || 1024,
+      height: metadata.height || 1024,
+    };
+  } catch (error) {
+    console.error("❌ Error getting image dimensions:", error);
+    // エラー時はデフォルト値を返す
+    return { width: 1024, height: 1024 };
+  }
+}
+
+/**
  * プロンプトを日英翻訳する関数 (locale判定版)
  * @param text 翻訳するテキスト
  * @param locale 入力言語 ('ja' または 'en')

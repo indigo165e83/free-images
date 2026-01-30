@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini, getImageDimensions } from "@/lib/server-utils"; // 共通関数
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -29,8 +29,11 @@ export async function editImage(formData: FormData) {
     const arrayBuffer = await file.arrayBuffer();
     const inputBuffer = Buffer.from(arrayBuffer);
 
-    // 2. 画像編集 (nano banana)
-    // ※ nano-banana は画像入力(inlineData)を受け取って生成できると仮定
+    // 元画像のサイズを取得（DBに保存用）
+    const inputDimensions = await getImageDimensions(inputBuffer);
+    console.log(`📐 Input image size: ${inputDimensions.width}x${inputDimensions.height}`);
+
+    // 2. 画像編集 (nano banana) - 元画像をそのまま使用
     const imageModel = genAI.getGenerativeModel({ model: "nano-banana-pro-preview" });
 
     const result = await imageModel.generateContent({
@@ -42,7 +45,7 @@ export async function editImage(formData: FormData) {
             {
               inlineData: {
                 data: inputBuffer.toString("base64"),
-                mimeType: file.type,
+                mimeType: file.type,  // 元の形式をそのまま使用
               },
             },
           ],
@@ -80,6 +83,9 @@ export async function editImage(formData: FormData) {
         // 説明文を保存
         descriptionJa: description.ja || "",
         descriptionEn: description.en || "",
+        // 画像サイズを保存（編集時は元画像のサイズを保持）
+        width: inputDimensions.width,
+        height: inputDimensions.height,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({

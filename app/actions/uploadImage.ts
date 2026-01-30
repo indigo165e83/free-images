@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { generateTagsWithGemini, saveImageToS3, generateDescriptionWithGemini } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, generateDescriptionWithGemini, getImageDimensions } from "@/lib/server-utils"; // 共通関数
 
 export async function uploadImage(formData: FormData) {
   // 1. ログインチェック
@@ -22,11 +22,12 @@ export async function uploadImage(formData: FormData) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 3. 共通関数でタグ生成、S3保存、説明文生成を並行実行
-    const [tags, s3Url, description] = await Promise.all([
+    // 3. 共通関数でタグ生成、S3保存、説明文生成、サイズ取得を並行実行
+    const [tags, s3Url, description, dimensions] = await Promise.all([
       generateTagsWithGemini(buffer, file.type, "Uploaded Image"),
       saveImageToS3(buffer, file.type, "upload"),
-      generateDescriptionWithGemini(buffer, file.type)
+      generateDescriptionWithGemini(buffer, file.type),
+      getImageDimensions(buffer)
     ]);
 
     console.log("✅ Generation Results:", { 
@@ -43,6 +44,9 @@ export async function uploadImage(formData: FormData) {
         // 説明文を自動生成して保存（promptは保存しない）
         descriptionJa: description.ja || "",
         descriptionEn: description.en || "",
+        // 画像サイズを保存
+        width: dimensions.width,
+        height: dimensions.height,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({
