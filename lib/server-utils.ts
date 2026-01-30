@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import crypto from "crypto";
+import sharp from "sharp";  // 画像処理(webp化)ライブラリ
 
 // クライアントの初期化 (シングルトン的に再利用)
 const s3Client = new S3Client({
@@ -145,7 +146,7 @@ export async function generateTagsWithGemini(
  */
 export async function saveImageToS3(
   imageBuffer: Buffer, 
-  mimeType: string, 
+  mimeType: string,   // 互換性のために残すが、内部では無視してWebP化する
   prefix: string = "gen"
 ): Promise<string> {
   const now = new Date();
@@ -154,22 +155,22 @@ export async function saveImageToS3(
   const day = String(now.getDate()).padStart(2, '0');
   const uuid = crypto.randomUUID();
 
-  // 拡張子の判定
-  let ext = "bin";
-  if (mimeType.includes("jpeg") || mimeType.includes("jpg")) ext = "jpg";
-  else if (mimeType.includes("png")) ext = "png";
-  else if (mimeType.includes("webp")) ext = "webp";
-  else if (mimeType.includes("gif")) ext = "gif";
-  else if (mimeType.includes("svg")) ext = "svg";
+  // ★変更: Sharpを使って画像をWebPに変換・圧縮
+  // quality: 80 は画質とサイズのバランスが良い推奨値
+  const webpBuffer = await sharp(imageBuffer)
+    .rotate() // スマホ写真などのExif回転情報を適用して正立させる
+    .webp({ quality: 80 }) 
+    .toBuffer();
 
   // フォルダ構成: public/YYYY/MM/DD/prefix-uuid.ext
-  const fileName = `public/${year}/${month}/${day}/${prefix}-${uuid}.${ext}`;
+  // 拡張子は常に .webp にする
+  const fileName = `public/${year}/${month}/${day}/${prefix}-${uuid}.webp`;
 
   await s3Client.send(new PutObjectCommand({
     Bucket: process.env.AWS_BUCKET_NAME,
     Key: fileName,
-    Body: imageBuffer,
-    ContentType: mimeType,
+    Body: webpBuffer, // webp圧縮後のバッファ
+    ContentType: "image/webp",  // MIMEタイプを固定
   }));
 
   return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
