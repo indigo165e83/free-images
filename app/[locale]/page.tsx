@@ -50,7 +50,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           </div>
         </header>
 
-        <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+        <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent py-2 leading-tight">
           {t('aiGalleryTitle')}
         </h2>
         
