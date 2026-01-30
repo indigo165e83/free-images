@@ -64,10 +64,10 @@ export async function editImage(formData: FormData) {
     // 3. 共通関数でタグ生成、S3保存、説明文生成を実行
     const [tags, s3Url, translatedPrompt, description] = await Promise.all([
       // 生成された画像に対してタグ付けを行う
-      generateTagsWithGemini(outputBuffer, "image/jpeg", prompt),
-      saveImageToS3(outputBuffer, "image/jpeg", "edit"),
+      generateTagsWithGemini(outputBuffer, "image/webp", prompt),
+      saveImageToS3(outputBuffer, "image/webp", "edit"),
       translatePrompt(prompt, locale),
-      generateDescriptionWithGemini(outputBuffer, "image/jpeg")
+      generateDescriptionWithGemini(outputBuffer, "image/webp")
     ]);
 
     // 4. DB保存
