@@ -53,7 +53,7 @@ node_modules/
 memo.txt
 
 # Prisma
-/app/generated/prisma
+app/\[locale\]/generated/
 
 # Script files
 scripts/
