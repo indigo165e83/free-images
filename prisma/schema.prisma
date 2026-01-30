@@ -76,6 +76,8 @@ model Image {
   id        String   @id @default(cuid())
   promptJa    String?  @db.Text
   promptEn    String?  @db.Text
+  descriptionJa String? @db.Text
+  descriptionEn String? @db.Text
   url       String   // URL of the image stored in S3
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
