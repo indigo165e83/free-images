@@ -174,3 +174,58 @@ export async function saveImageToS3(
 
   return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 }
+
+/**
+ * 画像から説明文（Description）を日英で生成する
+ */
+export async function generateDescriptionWithGemini(
+  imageBuffer: Buffer, 
+  mimeType: string
+): Promise<{ ja: string; en: string }> {
+  console.log("📝 Generating Description with Gemini...");
+  // ビジョンタスクに最適なモデルを使用
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `You are an expert image analyst. Analyze this image carefully and generate descriptive captions in both Japanese and English.
+
+The descriptions should be:
+- Natural and detailed (2-3 sentences)
+- Suitable for alt text or gallery overlay
+- Capture the main subject, style, mood, and colors
+- Free from markdown formatting
+
+Return ONLY a valid JSON object (no markdown, no explanation):
+{
+  "ja": "日本語の説明文",
+  "en": "English description"
+}`;
+
+  const imagePart = {
+    inlineData: {
+      data: imageBuffer.toString("base64"),
+      mimeType: mimeType,
+    },
+  };
+
+  try {
+    const result = await model.generateContent([prompt, imagePart]);
+    const responseText = result.response.text().trim();
+    
+    // JSONを抽出（マークダウンコードブロック対応）
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn("⚠️ No JSON found in response:", responseText);
+      return { ja: "", en: "" };
+    }
+    
+    const json = JSON.parse(jsonMatch[0]);
+    
+    return {
+      ja: (json.ja || "").trim(),
+      en: (json.en || "").trim()
+    };
+  } catch (error) {
+    console.error("❌ Description Generation Error:", error);
+    return { ja: "", en: "" };
+  }
+}

@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateTagsWithGemini, saveImageToS3, translatePrompt } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini } from "@/lib/server-utils"; // 共通関数
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -40,20 +40,24 @@ export async function generateImage(formData: FormData) {
         imageBuffer = Buffer.from(arrayBuffer);
     }
 
-    // 3. 共通関数でタグ生成とS3保存を実行
-    const [tags, s3Url, translatedPrompt] = await Promise.all([
+    // 3. 共通関数でタグ生成、S3保存、説明文生成を実行
+    const [tags, s3Url, translatedPrompt, description] = await Promise.all([
       generateTagsWithGemini(imageBuffer, "image/jpeg", prompt),
       saveImageToS3(imageBuffer, "image/jpeg", "generate"),
-      translatePrompt(prompt, locale)
+      translatePrompt(prompt, locale),
+      generateDescriptionWithGemini(imageBuffer, "image/jpeg")
     ]);
 
     // 4. DB保存
     await prisma.image.create({
       data: {
         url: s3Url,
-        // promptJaとpromptEnの両方に保存
+        // プロンプトを翻訳して保存
         promptJa: translatedPrompt.ja,
         promptEn: translatedPrompt.en,
+        // 説明文を保存
+        descriptionJa: description.ja || "",
+        descriptionEn: description.en || "",
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({

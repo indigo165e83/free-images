@@ -13,6 +13,8 @@ type ImageType = {
   url: string;
   promptJa: string | null;
   promptEn: string | null;
+  descriptionJa: string | null;
+  descriptionEn: string | null;
   tags: { id: string; nameJa: string; nameEn: string }[];
   createdAt: Date;
 };
@@ -34,6 +36,14 @@ export default function ImageGallery({ images, isAdmin }: Props) {
       return image.promptEn || image.promptJa; // 英語がなければ日本語をフォールバック表示
     }
     return image.promptJa || image.promptEn;
+  };
+
+  // 説明文を取得するヘルパー関数（descriptionを優先、なければpromptを使用）
+  const getLocalizedDescription = (image: ImageType) => {
+    if (locale === 'en') {
+      return image.descriptionEn || image.descriptionJa || image.promptEn || image.promptJa;
+    }
+    return image.descriptionJa || image.descriptionEn || image.promptJa || image.promptEn;
   };  
 
   const getLocalizedTagName = (tag: { nameJa: string; nameEn: string }) => {
@@ -140,7 +150,7 @@ export default function ImageGallery({ images, isAdmin }: Props) {
                   {/* オーバーレイ */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
                     <p className="text-xs text-white line-clamp-2 font-medium mb-1">
-                      {getLocalizedPrompt(image)}
+                      {getLocalizedDescription(image)}
                     </p>
                     {/* タグ表示 */}
                     <div className="flex flex-wrap gap-1">
