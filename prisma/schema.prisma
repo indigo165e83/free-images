@@ -79,6 +79,8 @@ model Image {
   descriptionJa String? @db.Text
   descriptionEn String? @db.Text
   url       String   // URL of the image stored in S3
+  width     Int      @default(1024)   // デフォルトは正方形
+  height    Int      @default(1024)  // デフォルトは正方形  
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   // Relation to the User model

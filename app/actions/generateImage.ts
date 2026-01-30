@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini, getImageDimensions } from "@/lib/server-utils"; // 共通関数
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -21,10 +21,12 @@ export async function generateImage(formData: FormData) {
   try {
     console.log("🚀 Starting Generation with nano banana...");
 
-    // 2. 画像生成 (nano banana)
+    // 2. 画像生成 (nano banana) - 1024x1024で生成
     const imageModel = genAI.getGenerativeModel({ model: "nano-banana-pro-preview" });
+    // プロンプトにサイズ指定を追加
+    const sizedPrompt = `${prompt} (1024x1024)`;
     const result = await imageModel.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: [{ text: sizedPrompt }] }],
     });
     const response = await result.response;
     
@@ -40,12 +42,13 @@ export async function generateImage(formData: FormData) {
         imageBuffer = Buffer.from(arrayBuffer);
     }
 
-    // 3. 共通関数でタグ生成、S3保存、説明文生成を実行
-    const [tags, s3Url, translatedPrompt, description] = await Promise.all([
+    // 3. 共通関数でタグ生成、S3保存、説明文生成、サイズ取得を実行
+    const [tags, s3Url, translatedPrompt, description, dimensions] = await Promise.all([
       generateTagsWithGemini(imageBuffer, "image/webp", prompt),
       saveImageToS3(imageBuffer, "image/webp", "generate"),
       translatePrompt(prompt, locale),
-      generateDescriptionWithGemini(imageBuffer, "image/webp")
+      generateDescriptionWithGemini(imageBuffer, "image/webp"),
+      getImageDimensions(imageBuffer)
     ]);
 
     // 4. DB保存
@@ -58,6 +61,9 @@ export async function generateImage(formData: FormData) {
         // 説明文を保存
         descriptionJa: description.ja || "",
         descriptionEn: description.en || "",
+        // 画像サイズを保存（生成時は1024x1024が目安だが、実際の寸法を記録）
+        width: dimensions.width,
+        height: dimensions.height,
         userId: session.user.id,
         tags: {
           connectOrCreate: tags.map((tag) => ({

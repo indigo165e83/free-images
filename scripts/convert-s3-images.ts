@@ -1,4 +1,4 @@
-// scripts/convert-s3-images.ts
+// ローカル環境でS3上の既存画像をWebPに変換するスクリプト
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { PrismaClient } from "@prisma/client";
 import sharp from "sharp";
