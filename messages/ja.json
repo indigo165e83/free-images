@@ -31,7 +31,9 @@
     "updatingTag": "更新中...",
     "nothingTag": "タグはありません",
     "addTagPlaceholder": "新しいタグを追加...",
-    "addTag": "追加"
+    "addTag": "追加",
+    "downloadButton": "画像をダウンロード",
+    "downloading": "ダウンロード中..."
   },
   "Footer": {
     "description": "このサイトは無料でAIが生成した画像を提供するウェブサイトです",

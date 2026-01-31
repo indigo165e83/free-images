@@ -8,6 +8,7 @@ import TagEditor from "./TagEditor";
 import PromptSection from "./PromptSection";
 import { Metadata } from "next";
 import { getTranslations } from 'next-intl/server';
+import DownloadButton from "./DownloadButton";
 
 // Next.js 15以降の非同期params対応 (v14でも動作します)
 interface Props {
@@ -125,6 +126,12 @@ export default async function ImageDetailPage({ params }: Props) {
   const displayDescription = getLocalizedDescription(image, locale);
   const displayPrompt = getLocalizedPrompt(image, locale);
 
+  // 画像ファイル名を決定 (例: description.png または image_ID.png)
+  // スペースなどをアンダースコアに置換してファイル名っぽくする
+  const fileName = displayDescription 
+    ? `${displayDescription.slice(0, 20).trim().replace(/\s+/g, "_")}.png`
+    : `free-images_${image.id}.png`;
+
   return (
     <main className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-5xl bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col md:flex-row">
@@ -151,6 +158,9 @@ export default async function ImageDetailPage({ params }: Props) {
           >
             {t('backToGalleryButton')}
           </Link>
+
+          {/* ダウンロードボタン */}
+          <DownloadButton imageUrl={image.url} fileName={fileName} />
 
           {/* 説明文セクション */}
           {displayDescription && (
