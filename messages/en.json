@@ -31,7 +31,9 @@
     "updatingTag": "Updating...",
     "nothingTag": "No tags available",
     "addTagPlaceholder": "Add a new tag...",
-    "addTag": "+Add"
+    "addTag": "+Add",
+    "downloadButton": "Download Image",
+    "downloading": "Downloading..."
   },
   "Footer": {
     "description": "This is a website for free, AI-generated images",
