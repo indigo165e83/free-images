@@ -84,8 +84,8 @@ model Image {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   // Relation to the User model
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags      Tag[]
 
   @@index([userId])

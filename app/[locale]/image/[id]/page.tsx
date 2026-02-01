@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import DeleteButton from "./DeleteButton";
 import TagEditor from "./TagEditor";
-import PromptSection from "./PromptSection";
+//import PromptSection from "./PromptSection";
 import { Metadata } from "next";
 import { getTranslations } from 'next-intl/server';
 import DownloadButton from "./DownloadButton";
@@ -134,66 +134,100 @@ export default async function ImageDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-5xl bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col md:flex-row">
+{/* メインコンテナ: 幅を少し広げて、コンテンツを収容しやすくする */}
+      <div className="w-full max-w-6xl flex flex-col gap-8">
         
-        {/* 左側: 画像表示エリア */}
-        <div className="md:w-2/3 bg-black flex items-center justify-center p-6">
-          <Image 
-            src={image.url} 
-            alt={(locale === 'en' ? (image.descriptionEn || image.descriptionJa) : (image.descriptionJa || image.descriptionEn)) || "AI generated image"}
-            width={image.width} 
-            height={image.height}
-            // レスポンシブ対応のためにスタイル調整
-            className="w-full h-auto max-w-full" 
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        </div>
-
-        {/* 右側: 情報エリア */}
-        <div className="md:w-1/3 p-8 flex flex-col gap-6">
-          {/* 戻るボタン */}
-          <Link 
-            href={`/${locale}`} // 現在の言語ルートに戻る 
-            className="mt-4 text-center bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition"
-          >
-            {t('backToGalleryButton')}
-          </Link>
-
-          {/* ダウンロードボタン */}
-          <DownloadButton imageUrl={image.url} fileName={fileName} />
-
-          {/* 説明文セクション */}
-          {displayDescription && (
-            <div>
-              <h2 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">DESCRIPTION</h2>
-              <p className="text-base font-medium leading-relaxed text-gray-100">
-                {displayDescription}
-              </p>
-            </div>
-          )}
-
-          {/* タグ一覧 */}
-          <TagEditor 
-            imageId={image.id} 
-            tags={image.tags} 
-            isAdmin={isAdmin} 
-          />
-
-          {/* プロンプトセクション（折りたたみ式） */}
-          <PromptSection prompt={displayPrompt} />
-
-          {/* メタデータ (作成日、サイズなど) */}
-          <div className="mt-auto border-t border-gray-700 pt-6 text-sm text-gray-400 space-y-2">
-            <p>Created by: <span className="text-white">{image.user?.name || "Unknown"}</span></p>
-            <p>Date: {image.createdAt.toLocaleDateString(locale)}</p>
-            <p>Size: <span className="text-white">{image.width} × {image.height} px</span></p>
+        {/* --- 上段: 画像と操作エリア --- */}
+        <div className="bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col md:flex-row">
+          
+          {/* 左側: 画像 (大きく表示) */}
+          <div className="md:w-2/3 bg-black flex items-center justify-center p-2 md:p-6">
+            <Image 
+              src={image.url} 
+              alt={displayDescription || "AI generated image"}
+              width={image.width} 
+              height={image.height}
+              className="w-full h-auto max-w-full object-contain max-h-[80vh]" 
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 60vw"
+              priority // ファーストビューなので優先読み込み
+            />
           </div>
 
-          {/* 管理者のみ削除ボタンを表示 */}
-          {isAdmin && (
-              <DeleteButton imageId={image.id} />
-          )}
+          {/* 右側: サイドバー (操作・メタデータ・タグ) */}
+          <div className="md:w-1/3 p-6 md:p-8 flex flex-col gap-6 bg-gray-800 border-l border-gray-700">
+            {/* 戻るボタン */}
+            <Link 
+              href={`/${locale}`} 
+              className="text-center bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition shadow-md"
+            >
+              {t('backToGalleryButton')}
+            </Link>
+
+            {/* ダウンロードボタン */}
+            <DownloadButton imageUrl={image.url} fileName={fileName} />
+
+            {/* タグ一覧 (操作しやすい位置に配置) */}
+            <div className="border-t border-gray-700 pt-6">
+               <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">TAGS</h3>
+               <TagEditor 
+                imageId={image.id} 
+                tags={image.tags} 
+                isAdmin={isAdmin} 
+              />
+            </div>
+
+            {/* メタデータ */}
+            <div className="mt-auto border-t border-gray-700 pt-6 text-sm text-gray-400 space-y-2">
+              <p>Created by: <span className="text-white font-medium">{image.user?.name || "indigo 165e83"}</span></p>
+              <p>Date: {image.createdAt.toLocaleDateString(locale)}</p>
+              <p>Size: <span className="text-white">{image.width} × {image.height} px</span></p>
+            </div>
+
+            {/* 管理者削除ボタン */}
+            {isAdmin && (
+              <div className="pt-4">
+                <DeleteButton imageId={image.id} />
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* --- 下段: テキストコンテンツエリア (ここがアドセンス/SEOの肝) --- */}
+        {/* ブログ記事のようなスタイルで読みやすくする */}
+        <article className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
+          
+          {/* 説明文 (Description) */}
+          {displayDescription && (
+            <section className="mb-10">
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2 border-b border-gray-600 pb-2">
+                <span className="text-indigo-400">#</span> Description
+              </h2>
+              <p className="text-lg text-gray-200 leading-loose tracking-wide">
+                {displayDescription}
+              </p>
+            </section>
+          )}
+
+          {/* プロンプト (Prompt) - 常に全表示 */}
+          <section>
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2 border-b border-gray-600 pb-2">
+              <span className="text-indigo-400">#</span> Prompt Details
+            </h2>
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-700">
+               {/* whitespace-pre-wrap で改行を維持しつつ、テキストとして表示 */}
+              <p className="text-gray-300 font-mono text-base leading-relaxed whitespace-pre-wrap break-words">
+                {displayPrompt || "No prompt data available."}
+              </p>
+            </div>
+            {/* 独自性担保のための一文（オプション） */}
+            <p className="mt-4 text-sm text-gray-500">
+              * This image was generated using AI based on the prompt above. 
+              (この画像は上記のプロンプトに基づいてAIによって生成されました。)
+            </p>
+          </section>
+
+        </article>
+
       </div>
     </main>
   );
