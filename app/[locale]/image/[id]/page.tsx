@@ -168,8 +168,7 @@ export default async function ImageDetailPage({ params }: Props) {
 
             {/* タグ一覧 (操作しやすい位置に配置) */}
             <div className="border-t border-gray-700 pt-6">
-               <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">TAGS</h3>
-               <TagEditor 
+              <TagEditor 
                 imageId={image.id} 
                 tags={image.tags} 
                 isAdmin={isAdmin} 
