@@ -26,7 +26,7 @@ type Props = {
 
 export default function InfiniteGallery({ initialImages }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(2);  //初期ページを「2」から開始する (1ページ目はinitialImagesですでに表示済み)
   const [hasMore, setHasMore] = useState(true);
   const [query, setQuery] = useState(""); // 検索フォームの入力値
   const [debouncedQuery, setDebouncedQuery] = useState(""); // 実際に検索を実行する値
@@ -49,7 +49,7 @@ export default function InfiniteGallery({ initialImages }: Props) {
       // ページ1から再取得
       const newImages = await getImages(1, debouncedQuery); // 型エラーが出る場合は getImagesの型定義を確認
       setImages(newImages as any); // 型調整が必要な場合あり
-      setPage(1);
+      setPage(2); // 次に読み込むのは2ページ目
       setHasMore(newImages.length > 0);
     };
 
@@ -73,8 +73,18 @@ export default function InfiniteGallery({ initialImages }: Props) {
     if (newImages.length === 0) {
       setHasMore(false);
     } else {
-      setImages((prev) => [...prev, ...(newImages as any)]);
-      setPage(nextPage);
+        setImages((prev) => {
+            // ★修正2: 重複排除 (IDでチェックして、既に存在しない画像だけ追加)
+            const existingIds = new Set(prev.map(img => img.id));
+            const uniqueNewImages = (newImages as any).filter((img: ImageType) => !existingIds.has(img.id));
+            
+            if (uniqueNewImages.length === 0) {
+            // データは返ってきたが全て重複していた場合 -> 次のページへ
+            return prev; 
+            }
+            return [...prev, ...uniqueNewImages];
+        });
+        setPage(nextPage + 1);
     }
   }, [page, debouncedQuery]);
 
