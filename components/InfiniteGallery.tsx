@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
-// 画像データの型定義 (ImageGalleryと共通化)
+// 画像データの型定義
 type ImageType = {
   id: string;
   url: string;
@@ -26,77 +26,91 @@ type Props = {
 
 export default function InfiniteGallery({ initialImages }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
-  const [page, setPage] = useState(2);  //初期ページを「2」から開始する (1ページ目はinitialImagesですでに表示済み)
+  const [page, setPage] = useState(2); // 2ページ目から開始
   const [hasMore, setHasMore] = useState(true);
-  const [query, setQuery] = useState(""); // 検索フォームの入力値
-  const [debouncedQuery, setDebouncedQuery] = useState(""); // 実際に検索を実行する値
+  const [query, setQuery] = useState(""); 
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  
+  // 読み込み中フラグを追加
+  const [isLoading, setIsLoading] = useState(false);
   
   const { ref, inView } = useInView();
   const t = useTranslations('HomePage');
   const locale = useLocale();
 
-  // デバウンス処理 (入力が止まってから検索を実行)
+  // デバウンス処理
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
-    }, 500); // 0.5秒待機
+    }, 500); 
     return () => clearTimeout(timer);
   }, [query]);
 
-  // 検索条件が変わったらリストをリセットして再取得
+  // 検索条件が変わったらリストをリセット
   useEffect(() => {
+    if (debouncedQuery === "" && images === initialImages) return;
+
     const resetAndFetch = async () => {
-      // ページ1から再取得
-      const newImages = await getImages(1, debouncedQuery); // 型エラーが出る場合は getImagesの型定義を確認
-      setImages(newImages as any); // 型調整が必要な場合あり
-      setPage(2); // 次に読み込むのは2ページ目
-      setHasMore(newImages.length > 0);
+      setIsLoading(true); // ロード開始
+      try {
+        const newImages = await getImages(1, debouncedQuery);
+        setImages(newImages as any);
+        setPage(2);
+        setHasMore(newImages.length > 0);
+      } finally {
+        setIsLoading(false); // ロード終了
+      }
     };
 
-    // 初回レンダリング時はinitialImagesを使うのでスキップしたいが、
-    // 検索窓が空でも検索アクションが走るのを防ぐ制御が必要ならここで調整
-    // 今回はシンプルにクエリ変更時のみ実行
-    if (debouncedQuery !== "") {
-        resetAndFetch();
-    } else if (page === 1 && images !== initialImages) {
-        // クエリが空に戻った場合もリセット
-        resetAndFetch();
-    }
+    resetAndFetch();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
 
   // 追加読み込み
   const loadMoreImages = useCallback(async () => {
-    const nextPage = page + 1;
-    const newImages = await getImages(nextPage, debouncedQuery);
+    // 読み込み中、またはこれ以上ない場合は何もしない (ガード処理)
+    if (isLoading || !hasMore) return;
 
-    if (newImages.length === 0) {
-      setHasMore(false);
-    } else {
+    setIsLoading(true); // ロックをかける
+    try {
+      const nextPage = page;
+      const newImages = await getImages(nextPage, debouncedQuery);
+
+      if (newImages.length === 0) {
+        setHasMore(false);
+      } else {
         setImages((prev) => {
-            // ★修正2: 重複排除 (IDでチェックして、既に存在しない画像だけ追加)
-            const existingIds = new Set(prev.map(img => img.id));
-            const uniqueNewImages = (newImages as any).filter((img: ImageType) => !existingIds.has(img.id));
-            
-            if (uniqueNewImages.length === 0) {
-            // データは返ってきたが全て重複していた場合 -> 次のページへ
-            return prev; 
-            }
-            return [...prev, ...uniqueNewImages];
+          // 重複排除
+          const existingIds = new Set(prev.map(img => img.id));
+          const uniqueNewImages = (newImages as any).filter((img: ImageType) => !existingIds.has(img.id));
+          
+          return [...prev, ...uniqueNewImages];
         });
-        setPage(nextPage + 1);
+        
+        // ページを進める
+        setPage(prev => prev + 1);
+
+        // もし取得した枚数が20枚未満なら、それが最後のページなので終了とする
+        if (newImages.length < 20) {
+          setHasMore(false);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load images", error);
+    } finally {
+      setIsLoading(false); // ロック解除
     }
-  }, [page, debouncedQuery]);
+  }, [page, debouncedQuery, hasMore, isLoading]);
 
   // スクロール検知
   useEffect(() => {
-    if (inView && hasMore) {
+    if (inView && hasMore && !isLoading) {
       loadMoreImages();
     }
-  }, [inView, hasMore, loadMoreImages]);
+  }, [inView, hasMore, isLoading, loadMoreImages]);
 
 
-  // --- ヘルパー関数 (ImageGalleryから移植) ---
+  // --- ヘルパー関数 ---
   const getLocalizedPrompt = (image: ImageType) => {
     if (locale === 'en') return image.promptEn || image.promptJa;
     return image.promptJa || image.promptEn;
@@ -134,7 +148,7 @@ export default function InfiniteGallery({ initialImages }: Props) {
         <div className="flex items-center justify-between mb-6 border-l-4 border-indigo-500 pl-4">
           <h3 className="text-xl font-bold">
             {debouncedQuery ? 
-              t('searchResultTitle', { query: debouncedQuery, count: images.length }) + (hasMore ? "+" : "")
+              t('searchResultTitle', { query: debouncedQuery, count: images.length })
               : t('galleryTitle')
             }
           </h3>
@@ -152,7 +166,6 @@ export default function InfiniteGallery({ initialImages }: Props) {
                   className="object-cover transition duration-500 group-hover:scale-110"
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                 />
-                {/* オーバーレイ情報 */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
                   <p className="text-xs text-white line-clamp-2 font-medium mb-1">
                     {getLocalizedDescription(image)}
@@ -170,7 +183,7 @@ export default function InfiniteGallery({ initialImages }: Props) {
           ))}
         </div>
 
-        {/* ローディング表示 & 無限スクロール検知エリア */}
+        {/* ローディング & 無限スクロール検知エリア */}
         {hasMore ? (
           <div ref={ref} className="h-20 flex justify-center items-center mt-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
@@ -183,7 +196,6 @@ export default function InfiniteGallery({ initialImages }: Props) {
           )
         )}
         
-        {/* 0件時の表示 */}
         {images.length === 0 && !hasMore && (
            <div className="text-center py-20 text-gray-500">
              <p className="text-xl">
