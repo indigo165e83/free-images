@@ -3,10 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { uploadImage } from '@/app/actions/uploadImage'; // 画像アップロードアクションをインポート
 import { generateImage } from '@/app/actions/generateImage'; // AI画像生成アクションをインポート
 import { editImage } from '@/app/actions/editImage';  // AI画像編集（image2image）アクションをインポート
-import Link from "next/link";
-import ImageGallery from '@/components/ImageGallery';
+// import Link from "next/link";
+// import ImageGallery from '@/components/ImageGallery';  // 検索機能付きギャラリーコンポーネント 無限スクロールを実装のため廃止
 import { getTranslations } from 'next-intl/server';
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { getImages } from '@/app/actions/getImages';
+import InfiniteGallery from '@/components/InfiniteGallery';
 
 // 1. 型定義を Promise<{...}> に変更
 // 2. await params でアンラップしてから中身を取り出す
@@ -18,6 +20,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   
   //管理者権限を持っているかチェック (ADMINの場合のみ true)
   const isAdmin = session?.user?.role === "ADMIN";
+
+  // 全件取得ではなく、最初の1ページ目(20件)だけを取得
+  // これにより初期表示が高速化され、残りはInfiniteGalleryがクライアント側で取得します
+  const initialImages = await getImages(1);
 
   // データベースから新しい順に画像を全権取得
   // (検索と絞り込みはクライアント側の ImageGallery コンポーネントで行います)
@@ -136,8 +142,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         )}
       </div>
 
-      {/* ▼▼▼ 検索機能付きギャラリーを表示 (データを渡すだけ) ▼▼▼ */}
-      <ImageGallery images={dbImages} isAdmin={isAdmin} />      
+      {/* ▼▼▼ 無限スクロールギャラリー (検索機能などはコンポーネント内に実装) ▼▼▼ */}
+      <div className="container mx-auto px-4 py-8">
+        <InfiniteGallery initialImages={initialImages} />      
+      </div>     
     </main>
   );
 }
