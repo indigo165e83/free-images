@@ -14,9 +14,21 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const t = await getTranslations({ locale, namespace: 'Footer' });
   const tHome = await getTranslations({ locale, namespace: 'HomePage' });
 
+  // サイトのベースURLを設定 (これがないと相対パスで警告が出ることがある)
+  const baseUrl = 'https://free-images.indigo165e83.com';
+
   return {
+    metadataBase: new URL(baseUrl),
     title: tHome('title'),
     description: t('description'),
+    // 検索エンジンに「日本語版と英語版がある」と伝える設定
+    alternates: {
+      canonical: `/${locale}`, // 現在のページの正規URL
+      languages: {
+        ja: '/ja',
+        en: '/en',
+      },
+    },
     other: {
       'google-adsense-account': 'ca-pub-6897468555074184',
     },
