@@ -4,9 +4,14 @@ import { defineConfig, devices } from '@playwright/test';
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+/**
+ * 認証情報を保存するディレクトリの定義
+ */
+export const STORAGE_STATE = path.join(__dirname, 'playwright/.auth/admin.json');
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -27,26 +32,48 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
     baseURL: 'http://localhost:3000',
-
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
 
   /* Configure projects for major browsers */
   projects: [
+    // --- 1. 認証セットアッププロジェクト ---
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/, // auth.setup.ts という名前のファイルを認証用として実行
+    },
+
+    // --- 2. 管理者権限が必要なテスト (Chromium) ---
+    {
+      name: 'chromium-logged-in',
+      use: { 
+        ...devices['Desktop Chrome'],
+        // 保存されたストレージ状態を読み込む
+        storageState: STORAGE_STATE,
+      },
+      // 実行前に setup プロジェクトが完了している必要がある
+      dependencies: ['setup'],
+      // admin.spec.ts など、ログインが必要なテストファイルを指定
+      testMatch: /.*admin\.spec\.ts/,
+    },
+
+    // --- 3. ゲスト（未ログイン）状態のテスト (既存の各ブラウザ) ---
+    {
+      name: 'chromium-guest',
       use: { ...devices['Desktop Chrome'] },
+      // ログイン用テストは除外する
+      testIgnore: /.*admin\.spec\.ts/,
     },
-
     {
-      name: 'firefox',
+      name: 'firefox-guest',
       use: { ...devices['Desktop Firefox'] },
+      testIgnore: /.*admin\.spec\.ts/,
     },
-
     {
-      name: 'webkit',
+      name: 'webkit-guest',
       use: { ...devices['Desktop Safari'] },
+      testIgnore: /.*admin\.spec\.ts/,
     },
 
     /* Test against mobile viewports. */
