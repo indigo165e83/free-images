@@ -157,7 +157,7 @@ export default function InfiniteGallery({ initialImages }: Props) {
         {/* 画像グリッド */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {images.map((image) => (
-            <Link href={`/image/${image.id}`} key={image.id}>
+            <Link href={`/${locale}/image/${image.id}`} key={image.id}>
               <div className="group relative aspect-square overflow-hidden rounded-lg bg-gray-800 shadow-lg cursor-pointer">
                 <Image
                   src={image.url}
