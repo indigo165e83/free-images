@@ -9,6 +9,7 @@ import { getTranslations } from 'next-intl/server';
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { getImages } from '@/app/actions/getImages';
 import InfiniteGallery from '@/components/InfiniteGallery';
+import { Heart } from 'lucide-react';
 
 // 1. 型定義を Promise<{...}> に変更
 // 2. await params でアンラップしてから中身を取り出す
@@ -39,6 +40,18 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         <header className="absolute top-0 flex w-full max-w-7xl items-center justify-between p-6">
           <h1 className="text-2xl font-bold">{t('title')}</h1>
             <div className="flex items-center gap-4"> {/* ← gap-4で間隔をあける */}
+
+            {/* Stripe寄付ボタン */}
+            <a 
+              href="https://donate.stripe.com/dRmfZh1cr3Tx8Kf31hc7u01" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full font-bold transition shadow-lg text-sm"
+            >
+              <Heart className="w-4 h-4 fill-white" />
+              <span>Donate</span>
+            </a>
+
             {/* 言語切り替えボタン */}
             <LanguageSwitcher locale={locale} />
             {/* ログイン/ログアウトボタン */}
