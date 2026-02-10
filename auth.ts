@@ -68,6 +68,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = user.role; // DBまたはCredentialsから来たroleをトークンに入れる
       }
+      // Debug: トークン内容を確認
+      //console.log("DEBUG [JWT]:", token); // サーバー側のログで規約通りの sub や exp を確認
       return token;
     },
     // 2. セッションコールバック: トークンから情報を取り出してセッションにセットする
