@@ -8,6 +8,24 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser -d testdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
+      AUTH_SECRET: ci-test-secret-key-for-playwright
+      AUTH_TRUST_HOST: true
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -15,6 +33,10 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm install -g pnpm && pnpm install
+    - name: Run database migrations
+      run: pnpm exec prisma migrate deploy
+    - name: Build application
+      run: pnpm run build
     - name: Install Playwright Browsers
       run: pnpm exec playwright install --with-deps
     - name: Run Playwright tests
