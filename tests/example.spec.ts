@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test('has title', async ({ page }) => {
+  test.skip(!!process.env.CI, 'Skip external site test on CI');
+
   await page.goto('https://playwright.dev/');
 
   // Expect a title "to contain" a substring.
@@ -8,6 +10,8 @@ test('has title', async ({ page }) => {
 });
 
 test('get started link', async ({ page }) => {
+  test.skip(!!process.env.CI, 'Skip external site test on CI');
+
   await page.goto('https://playwright.dev/');
 
   // Click the get started link.

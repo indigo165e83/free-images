@@ -1,16 +1,24 @@
 import { test as setup, expect } from '@playwright/test';
 import { STORAGE_STATE } from '../playwright.config';
 import { LoginPage } from './pages/LoginPage';
+import fs from 'fs';
+import path from 'path';
 
 // プロセス環境変数から読み込み
 const email = process.env.TEST_ADMIN_EMAIL;
 const password = process.env.TEST_ADMIN_PASSWORD;
 
-if (!email || !password) {
-  throw new Error('Test email or password is not defined in .env file');
-}
-
 setup('authenticate as admin', async ({ page }) => {
+  if (!email || !password) {
+    // 依存プロジェクト(chromium-logged-in)がストレージファイルを読み込めるよう
+    // 空のストレージ状態ファイルを作成してからスキップ
+    const dir = path.dirname(STORAGE_STATE);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(STORAGE_STATE, JSON.stringify({ cookies: [], origins: [] }));
+    setup.skip(true, 'TEST_ADMIN_EMAIL or TEST_ADMIN_PASSWORD is not set. Skipping admin auth setup.');
+    return;
+  }
+
 // 環境変数が効いていない場合、Credentialsプロバイダーが出ないため確認
   console.log('Testing with NODE_ENV:', process.env.NODE_ENV);
 

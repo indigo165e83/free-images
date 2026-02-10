@@ -62,18 +62,18 @@ export default defineConfig({
     {
       name: 'chromium-guest',
       use: { ...devices['Desktop Chrome'] },
-      // ログイン用テストは除外する
-      testIgnore: /.*admin\.spec\.ts/,
+      // ログイン用テストと認証セットアップは除外する
+      testIgnore: [/.*admin\.spec\.ts/, /auth\.setup\.ts/],
     },
     {
       name: 'firefox-guest',
       use: { ...devices['Desktop Firefox'] },
-      testIgnore: /.*admin\.spec\.ts/,
+      testIgnore: [/.*admin\.spec\.ts/, /auth\.setup\.ts/],
     },
     {
       name: 'webkit-guest',
       use: { ...devices['Desktop Safari'] },
-      testIgnore: /.*admin\.spec\.ts/,
+      testIgnore: [/.*admin\.spec\.ts/, /auth\.setup\.ts/],
     },
 
     /* Test against mobile viewports. */
@@ -98,9 +98,9 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  webServer: {
+    command: 'pnpm run start',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+  },
 });
