@@ -43,13 +43,13 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
             {/* Stripe寄付ボタン */}
             <a 
-              href="https://donate.stripe.com/dRmfZh1cr3Tx8Kf31hc7u01" 
+              href="https://buy.stripe.com/dRmfZh1cr3Tx8Kf31hc7u01" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full font-bold transition shadow-lg text-sm"
             >
               <Heart className="w-4 h-4 fill-white" />
-              <span>Donate</span>
+              <span>Support</span>
             </a>
 
             {/* 言語切り替えボタン */}
