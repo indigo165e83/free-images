@@ -41,15 +41,15 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           <h1 className="text-2xl font-bold">{t('title')}</h1>
             <div className="flex items-center gap-4"> {/* ← gap-4で間隔をあける */}
 
-            {/* Stripe寄付ボタン */}
-            <a 
-              href="https://buy.stripe.com/dRmfZh1cr3Tx8Kf31hc7u01" 
-              target="_blank" 
+            {/* GitHub Sponsors ボタン */}
+            <a
+              href="https://github.com/sponsors/indigo165e83"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full font-bold transition shadow-lg text-sm"
             >
               <Heart className="w-4 h-4 fill-white" />
-              <span>Support</span>
+              <span>Sponsor</span>
             </a>
 
             {/* 言語切り替えボタン */}
