@@ -5,7 +5,7 @@ import { useInView } from 'react-intersection-observer';
 import { getImages } from '@/app/actions/getImages';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Search, X, Tag } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 // 画像データの型定義
@@ -20,20 +20,30 @@ type ImageType = {
   createdAt: Date;
 };
 
-type Props = {
-  initialImages: ImageType[];
+type TagType = {
+  id: string;
+  nameJa: string;
+  nameEn: string;
+  count: number;
 };
 
-export default function InfiniteGallery({ initialImages }: Props) {
+type Props = {
+  initialImages: ImageType[];
+  allTags: TagType[];
+};
+
+export default function InfiniteGallery({ initialImages, allTags }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
   const [page, setPage] = useState(2); // 2ページ目から開始
   const [hasMore, setHasMore] = useState(true);
-  const [query, setQuery] = useState(""); 
+  const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  
+  const [selectedTagId, setSelectedTagId] = useState("");
+  const [showAllTags, setShowAllTags] = useState(false);
+
   // 読み込み中フラグを追加
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { ref, inView } = useInView();
   const t = useTranslations('HomePage');
   const locale = useLocale();
@@ -42,18 +52,18 @@ export default function InfiniteGallery({ initialImages }: Props) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
-    }, 500); 
+    }, 500);
     return () => clearTimeout(timer);
   }, [query]);
 
-  // 検索条件が変わったらリストをリセット
+  // 検索条件またはタグフィルタが変わったらリストをリセット
   useEffect(() => {
-    if (debouncedQuery === "" && images === initialImages) return;
+    if (debouncedQuery === "" && selectedTagId === "" && images === initialImages) return;
 
     const resetAndFetch = async () => {
       setIsLoading(true); // ロード開始
       try {
-        const newImages = await getImages(1, debouncedQuery);
+        const newImages = await getImages(1, debouncedQuery, selectedTagId);
         setImages(newImages as any);
         setPage(2);
         setHasMore(newImages.length > 0);
@@ -64,7 +74,7 @@ export default function InfiniteGallery({ initialImages }: Props) {
 
     resetAndFetch();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery]);
+  }, [debouncedQuery, selectedTagId]);
 
   // 追加読み込み
   const loadMoreImages = useCallback(async () => {
@@ -74,7 +84,7 @@ export default function InfiniteGallery({ initialImages }: Props) {
     setIsLoading(true); // ロックをかける
     try {
       const nextPage = page;
-      const newImages = await getImages(nextPage, debouncedQuery);
+      const newImages = await getImages(nextPage, debouncedQuery, selectedTagId);
 
       if (newImages.length === 0) {
         setHasMore(false);
@@ -83,10 +93,10 @@ export default function InfiniteGallery({ initialImages }: Props) {
           // 重複排除
           const existingIds = new Set(prev.map(img => img.id));
           const uniqueNewImages = (newImages as any).filter((img: ImageType) => !existingIds.has(img.id));
-          
+
           return [...prev, ...uniqueNewImages];
         });
-        
+
         // ページを進める
         setPage(prev => prev + 1);
 
@@ -100,7 +110,7 @@ export default function InfiniteGallery({ initialImages }: Props) {
     } finally {
       setIsLoading(false); // ロック解除
     }
-  }, [page, debouncedQuery, hasMore, isLoading]);
+  }, [page, debouncedQuery, selectedTagId, hasMore, isLoading]);
 
   // スクロール検知
   useEffect(() => {
@@ -109,6 +119,15 @@ export default function InfiniteGallery({ initialImages }: Props) {
     }
   }, [inView, hasMore, isLoading, loadMoreImages]);
 
+  // タグ選択ハンドラ
+  const handleTagSelect = (tagId: string) => {
+    setSelectedTagId((prev) => (prev === tagId ? "" : tagId));
+  };
+
+  // タグクリア
+  const clearTagFilter = () => {
+    setSelectedTagId("");
+  };
 
   // --- ヘルパー関数 ---
   const getLocalizedPrompt = (image: ImageType) => {
@@ -123,6 +142,16 @@ export default function InfiniteGallery({ initialImages }: Props) {
     if (locale === 'en') return tag.nameEn || tag.nameJa;
     return tag.nameJa || tag.nameEn;
   };
+
+  // 選択中のタグ名を取得
+  const selectedTagName = selectedTagId
+    ? getLocalizedTagName(allTags.find((tag) => tag.id === selectedTagId) || { nameJa: '', nameEn: '' })
+    : '';
+
+  // 表示するタグ数を制限
+  const VISIBLE_TAG_COUNT = 20;
+  const visibleTags = showAllTags ? allTags : allTags.slice(0, VISIBLE_TAG_COUNT);
+  const hasHiddenTags = allTags.length > VISIBLE_TAG_COUNT;
 
   return (
     <>
@@ -143,12 +172,62 @@ export default function InfiniteGallery({ initialImages }: Props) {
         </p>
       </div>
 
+      {/* タグフィルタ */}
+      {allTags.length > 0 && (
+        <div className="w-full max-w-4xl mt-6 mx-auto px-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Tag className="h-4 w-4 text-gray-400" />
+            <span className="text-sm text-gray-400 font-medium">{t('tagFilterLabel')}</span>
+            {selectedTagId && (
+              <button
+                onClick={clearTagFilter}
+                className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-3 w-3" />
+                {t('tagFilterClear')}
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {visibleTags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => handleTagSelect(tag.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
+                  selectedTagId === tag.id
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                    : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700'
+                }`}
+              >
+                <span>#{getLocalizedTagName(tag)}</span>
+                <span className={`text-xs ${selectedTagId === tag.id ? 'text-indigo-200' : 'text-gray-500'}`}>
+                  {tag.count}
+                </span>
+              </button>
+            ))}
+            {hasHiddenTags && (
+              <button
+                onClick={() => setShowAllTags(!showAllTags)}
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-800/80 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700 transition-all"
+              >
+                {showAllTags ? t('tagFilterShowLess') : t('tagFilterShowMore', { count: allTags.length - VISIBLE_TAG_COUNT })}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 検索結果タイトル */}
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex items-center justify-between mb-6 border-l-4 border-indigo-500 pl-4">
           <h3 className="text-xl font-bold">
-            {debouncedQuery ? 
-              t('searchResultTitle', { query: debouncedQuery, count: images.length })
+            {debouncedQuery || selectedTagId ?
+              t('searchResultTitle', {
+                query: selectedTagId
+                  ? (debouncedQuery ? `${debouncedQuery} × #${selectedTagName}` : `#${selectedTagName}`)
+                  : debouncedQuery,
+                count: images.length
+              })
               : t('galleryTitle')
             }
           </h3>
@@ -172,7 +251,18 @@ export default function InfiniteGallery({ initialImages }: Props) {
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {image.tags.slice(0, 3).map(tag => (
-                      <span key={tag.id} className="text-[10px] bg-indigo-600/80 px-1.5 py-0.5 rounded text-white">
+                      <span
+                        key={tag.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleTagSelect(tag.id);
+                        }}
+                        className={`text-[10px] px-1.5 py-0.5 rounded text-white cursor-pointer transition-colors ${
+                          selectedTagId === tag.id
+                            ? 'bg-indigo-500'
+                            : 'bg-indigo-600/80 hover:bg-indigo-500'
+                        }`}
+                      >
                         #{getLocalizedTagName(tag)}
                       </span>
                     ))}
@@ -195,11 +285,11 @@ export default function InfiniteGallery({ initialImages }: Props) {
             </div>
           )
         )}
-        
+
         {images.length === 0 && !hasMore && (
            <div className="text-center py-20 text-gray-500">
              <p className="text-xl">
-               {debouncedQuery ? "条件に一致する画像は見つかりませんでした" : "まだ画像がありません"}
+               {debouncedQuery || selectedTagId ? t('noImagesSearch') : t('noImages')}
              </p>
            </div>
         )}

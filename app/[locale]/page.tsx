@@ -1,5 +1,4 @@
 import { auth, signIn, signOut } from '@/auth';
-import { prisma } from '@/lib/prisma';
 import { uploadImage } from '@/app/actions/uploadImage'; // 画像アップロードアクションをインポート
 import { generateImage } from '@/app/actions/generateImage'; // AI画像生成アクションをインポート
 import { editImage } from '@/app/actions/editImage';  // AI画像編集（image2image）アクションをインポート
@@ -8,6 +7,7 @@ import { editImage } from '@/app/actions/editImage';  // AI画像編集（image2
 import { getTranslations } from 'next-intl/server';
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { getImages } from '@/app/actions/getImages';
+import { getTags } from '@/app/actions/getTags';
 import InfiniteGallery from '@/components/InfiniteGallery';
 import { Heart } from 'lucide-react';
 
@@ -22,16 +22,11 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   //管理者権限を持っているかチェック (ADMINの場合のみ true)
   const isAdmin = session?.user?.role === "ADMIN";
 
-  // 全件取得ではなく、最初の1ページ目(20件)だけを取得
-  // これにより初期表示が高速化され、残りはInfiniteGalleryがクライアント側で取得します
-  const initialImages = await getImages(1);
-
-  // データベースから新しい順に画像を全権取得
-  // (検索と絞り込みはクライアント側の ImageGallery コンポーネントで行います)
-  const dbImages = await prisma.image.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { tags: true }, // タグも一緒に取得
-  });
+  // 最初の1ページ目(20件)とタグ一覧を並行取得
+  const [initialImages, allTags] = await Promise.all([
+    getImages(1),
+    getTags(),
+  ]);
 
   return (
     <main className="min-h-screen bg-gray-900 text-white">
@@ -157,7 +152,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
       {/* ▼▼▼ 無限スクロールギャラリー (検索機能などはコンポーネント内に実装) ▼▼▼ */}
       <div className="container mx-auto px-4 py-8">
-        <InfiniteGallery initialImages={initialImages} />      
+        <InfiniteGallery initialImages={initialImages} allTags={allTags} />      
       </div>     
     </main>
   );
