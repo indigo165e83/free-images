@@ -16,7 +16,7 @@ export async function getTags() {
       },
     });
 
-    // 画像が紐付いているタグのみ返す
+    // 画像が紐付いているタグのみ返し、画像数の降順でソート
     return tags
       .filter((tag) => tag._count.images > 0)
       .map((tag) => ({
@@ -24,7 +24,8 @@ export async function getTags() {
         nameJa: tag.nameJa,
         nameEn: tag.nameEn,
         count: tag._count.images,
-      }));
+      }))
+      .sort((a, b) => b.count - a.count);
   } catch (error) {
     console.error('Error fetching tags:', error);
     return [];
