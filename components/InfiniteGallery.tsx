@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Search, X, Tag } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation';
 
 // 画像データの型定義
 type ImageType = {
@@ -48,6 +49,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
   const { ref, inView } = useInView();
   const t = useTranslations('HomePage');
   const locale = useLocale();
+  const router = useRouter();
 
   // デバウンス処理
   useEffect(() => {
@@ -252,16 +254,17 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {image.tags.slice(0, 3).map(tag => (
-                      <Link
+                      <span
                         key={tag.id}
-                        href={`/${locale}/tags/${tag.id}`}
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
+                          router.push(`/${locale}/tags/${tag.id}`);
                         }}
                         className="text-[10px] px-1.5 py-0.5 rounded text-white cursor-pointer transition-colors bg-indigo-600/80 hover:bg-indigo-500"
                       >
                         #{getLocalizedTagName(tag)}
-                      </Link>
+                      </span>
                     ))}
                   </div>
                 </div>
