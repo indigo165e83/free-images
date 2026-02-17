@@ -25,7 +25,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   // 最初の1ページ目(20件)とタグ一覧を並行取得
   const [initialImages, allTags] = await Promise.all([
     getImages(1),
-    getTags(),
+    getTags(locale),
   ]);
 
   return (

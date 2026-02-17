@@ -86,7 +86,7 @@ export default async function TagPage({ params }: Props) {
   // このタグ名で絞り込んだ最初の1ページ分を取得
   const [initialImages, allTags] = await Promise.all([
     getImages(1, '', tagName),
-    getTags(),
+    getTags(locale),
   ]);
 
   return (
