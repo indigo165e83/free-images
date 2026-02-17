@@ -4,24 +4,40 @@ import { prisma } from '@/lib/prisma';
 
 const IMAGES_PER_PAGE = 20;
 
-export async function getImages(page: number, searchQuery: string = "") {
+export async function getImages(page: number, searchQuery: string = "", tagName: string = "") {
   try {
     // 検索条件の構築
-    const whereCondition = searchQuery.trim() ? {
-      OR: [
-        { promptJa: { contains: searchQuery, mode: 'insensitive' as const } },
-        { promptEn: { contains: searchQuery, mode: 'insensitive' as const } },
-        { descriptionJa: { contains: searchQuery, mode: 'insensitive' as const } },
-        { descriptionEn: { contains: searchQuery, mode: 'insensitive' as const } },
-        { tags: { some: { 
-            OR: [
-              { nameJa: { contains: searchQuery, mode: 'insensitive' as const } },
-              { nameEn: { contains: searchQuery, mode: 'insensitive' as const } }
-            ]
-          } 
-        }}
-      ]
-    } : {};
+    const conditions: Record<string, unknown>[] = [];
+
+    // テキスト検索条件
+    if (searchQuery.trim()) {
+      conditions.push({
+        OR: [
+          { promptJa: { contains: searchQuery, mode: 'insensitive' as const } },
+          { promptEn: { contains: searchQuery, mode: 'insensitive' as const } },
+          { descriptionJa: { contains: searchQuery, mode: 'insensitive' as const } },
+          { descriptionEn: { contains: searchQuery, mode: 'insensitive' as const } },
+          { tags: { some: {
+              OR: [
+                { nameJa: { contains: searchQuery, mode: 'insensitive' as const } },
+                { nameEn: { contains: searchQuery, mode: 'insensitive' as const } }
+              ]
+            }
+          }}
+        ]
+      });
+    }
+
+    // タグフィルタ条件（タグ名で検索）
+    if (tagName.trim()) {
+      conditions.push({
+        tags: { some: { OR: [{ nameJa: tagName }, { nameEn: tagName }] } }
+      });
+    }
+
+    const whereCondition = conditions.length > 0
+      ? { AND: conditions }
+      : {};
 
     const images = await prisma.image.findMany({
       where: whereCondition, // 条件を適用

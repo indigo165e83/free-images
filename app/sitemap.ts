@@ -39,5 +39,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   });
 
-  return [...staticPages, ...dynamicPages];
+  // 3. タグページをDBから取得
+  const tags = await prisma.tag.findMany({
+    select: { id: true, nameJa: true, nameEn: true, updatedAt: true },
+    where: { images: { some: {} } }, // 画像が紐付いているタグのみ
+  });
+
+  const tagPages = tags.flatMap((tag) => {
+    return locales.map((locale) => {
+      const tagName = locale === 'en' ? (tag.nameEn || tag.nameJa) : (tag.nameJa || tag.nameEn);
+      return {
+        url: `${baseUrl}/${locale}/tags/${encodeURIComponent(tagName)}`,
+        lastModified: tag.updatedAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      };
+    });
+  });
+
+  return [...staticPages, ...dynamicPages, ...tagPages];
 }
