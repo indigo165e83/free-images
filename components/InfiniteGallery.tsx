@@ -190,22 +190,24 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
 
   return (
     <>
-      {/* 検索フォーム */}
-      <div className="w-full max-w-2xl mt-10 relative group mx-auto px-4">
-        <div className="relative">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5 pointer-events-none" />
-          <input
-            type="text"
-            value={query}
-            onChange={handleSearch}
-            placeholder={t('searchPlaceholder')}
-            className="w-full rounded-full bg-gray-800/80 border border-gray-600 py-4 pl-14 pr-6 text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 outline-none backdrop-blur-sm transition-all shadow-lg"
-          />
+      {/* 検索フォーム - 一時的に非表示 */}
+      {false && (
+        <div className="w-full max-w-2xl mt-10 relative group mx-auto px-4">
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5 pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={handleSearch}
+              placeholder={t('searchPlaceholder')}
+              className="w-full rounded-full bg-gray-800/80 border border-gray-600 py-4 pl-14 pr-6 text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 outline-none backdrop-blur-sm transition-all shadow-lg"
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-2 ml-4">
+            {t('searchNote')}
+          </p>
         </div>
-        <p className="text-xs text-gray-500 mt-2 ml-4">
-          {t('searchNote')}
-        </p>
-      </div>
+      )}
 
       {/* タグフィルタ */}
       {allTags.length > 0 && (
@@ -256,20 +258,9 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex items-center justify-between mb-6 border-l-4 border-indigo-500 pl-4">
           
-          {/* 排他表示ロジック: キーワードがある場合、またはタグがある場合、またはデフォルト */}
-          {debouncedQuery ? (
-            // A. キーワード検索中の表示
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xl font-bold">
-              <span className="flex items-center gap-2">
-                <Search className="w-5 h-5 text-indigo-400" />
-                <span>&quot;{debouncedQuery}&quot;</span>
-              </span>
-              <span className="text-base font-normal text-gray-400 ml-1">
-                ({images.length} {locale === 'en' ? 'results' : '件'})
-              </span>
-            </div>
-          ) : selectedTagName ? (
-            // B. タグ選択中の表示
+          {/* タグがある場合、またはデフォルト */}
+          {selectedTagName ? (
+            // タグ選択中の表示
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xl font-bold">
               <span className="flex items-center gap-2 text-indigo-200">
                 <Tag className="w-5 h-5 text-indigo-400" />
@@ -281,7 +272,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
               </span>
             </div>
           ) : (
-            // C. 何もしていない時の表示
+            // デフォルト表示
             <h3 className="text-xl font-bold">{t('galleryTitle')}</h3>
           )}
           
