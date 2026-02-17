@@ -4,6 +4,7 @@
 import { useState, useTransition } from "react";
 import { removeTagFromImage, addTagToImage } from "@/app/actions/tagActions";
 import { useTranslations, useLocale } from "next-intl";
+import Link from "next/link";
 
 type Tag = {
   id: string;
@@ -66,14 +67,16 @@ export default function TagEditor({ imageId, tags, isAdmin }: Props) {
           <span
             key={tag.id}
             className={`px-3 py-1 rounded-full text-sm flex items-center gap-2 ${
-              isAdmin 
+              isAdmin
                 ? "bg-gray-700 text-gray-200 border border-gray-600 pl-3 pr-2" // 管理者用デザイン
-                : "bg-indigo-900 text-indigo-200" // 一般用デザイン
+                : "bg-indigo-900 text-indigo-200 hover:bg-indigo-800 transition-colors" // 一般用デザイン
             }`}
           >
-            {/* 言語に応じて表示を切り替え */}
-            #{getTagName(tag)}
-            
+            {/* 言語に応じて表示を切り替え。タグページへのリンク */}
+            <Link href={`/${locale}/tags/${tag.id}`} className="hover:text-white transition-colors">
+              #{getTagName(tag)}
+            </Link>
+
             {/* 管理者のみ削除ボタン(×)を表示 */}
             {isAdmin && (
               <button
@@ -86,7 +89,7 @@ export default function TagEditor({ imageId, tags, isAdmin }: Props) {
             )}
           </span>
         ))}
-        
+
         {tags.length === 0 && <span className="text-gray-500 text-sm">{t("nothingTag")}</span>}
       </div>
 

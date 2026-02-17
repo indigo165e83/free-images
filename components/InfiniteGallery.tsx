@@ -30,15 +30,16 @@ type TagType = {
 type Props = {
   initialImages: ImageType[];
   allTags: TagType[];
+  defaultTagId?: string;
 };
 
-export default function InfiniteGallery({ initialImages, allTags }: Props) {
+export default function InfiniteGallery({ initialImages, allTags, defaultTagId = "" }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
   const [page, setPage] = useState(2); // 2ページ目から開始
   const [hasMore, setHasMore] = useState(true);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [selectedTagId, setSelectedTagId] = useState("");
+  const [selectedTagId, setSelectedTagId] = useState(defaultTagId);
   const [showAllTags, setShowAllTags] = useState(false);
 
   // 読み込み中フラグを追加
@@ -251,20 +252,16 @@ export default function InfiniteGallery({ initialImages, allTags }: Props) {
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {image.tags.slice(0, 3).map(tag => (
-                      <span
+                      <Link
                         key={tag.id}
+                        href={`/${locale}/tags/${tag.id}`}
                         onClick={(e) => {
-                          e.preventDefault();
-                          handleTagSelect(tag.id);
+                          e.stopPropagation();
                         }}
-                        className={`text-[10px] px-1.5 py-0.5 rounded text-white cursor-pointer transition-colors ${
-                          selectedTagId === tag.id
-                            ? 'bg-indigo-500'
-                            : 'bg-indigo-600/80 hover:bg-indigo-500'
-                        }`}
+                        className="text-[10px] px-1.5 py-0.5 rounded text-white cursor-pointer transition-colors bg-indigo-600/80 hover:bg-indigo-500"
                       >
                         #{getLocalizedTagName(tag)}
-                      </span>
+                      </Link>
                     ))}
                   </div>
                 </div>

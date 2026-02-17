@@ -39,6 +39,10 @@
     "downloadButton": "Download Image",
     "downloading": "Downloading..."
   },
+  "TagPage": {
+    "backToGallery": "← Back to Gallery",
+    "imageCount": "{count} images"
+  },
   "Footer": {
     "description": "This is a website for free, AI-generated images",
     "tips": "Tips for Generation",
