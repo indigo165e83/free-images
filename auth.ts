@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
+// import Credentials from "next-auth/providers/credentials" // テスト用: AdSense審査通過後に再有効化
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma" // 修正: create new... ではなく import する
 // import { PrismaClient } from "@prisma/client"
@@ -17,6 +18,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
     }),
+    // ▼▼▼ テスト用プロバイダー (AdSense審査通過後に再有効化) ▼▼▼
+    // Credentials({
+    //   id: "test-login",
+    //   name: "Test Login",
+    //   credentials: {
+    //     email: { label: "Email", type: "email" },
+    //     password: { label: "Password", type: "password" },
+    //   },
+    //   authorize: async (credentials) => {
+    //     // 本番環境(production)以外ならOKにする
+    //     if (process.env.NODE_ENV === "production") {
+    //       return null;
+    //     }
+    //     const testEmail = process.env.TEST_ADMIN_EMAIL;
+    //     const testPassword = process.env.TEST_ADMIN_PASSWORD;
+    //     if (!testEmail || !testPassword) {
+    //       return null;
+    //     }
+    //     if (
+    //       credentials.email === testEmail &&
+    //       credentials.password === testPassword
+    //     ) {
+    //       return {
+    //         id: "test-admin-id",
+    //         name: "Test Admin",
+    //         email: testEmail,
+    //         role: "ADMIN",
+    //         image: "https://placehold.co/100x100",
+    //       }
+    //     }
+    //     return null;
+    //   },
+    // }),
+    // ▲▲▲ テスト用プロバイダー (ここまで) ▲▲▲
   ],
   // Callbacks are used to control what happens when an action is performed.
   callbacks: {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import GoogleAdsense from "@/components/GoogleAdsense";
+// import GoogleAdsense from "@/components/GoogleAdsense"; // AdSense審査通過後に再有効化
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, getTranslations} from 'next-intl/server';
 
@@ -29,9 +29,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
         en: '/en',
       },
     },
-    other: {
-      'google-adsense-account': 'ca-pub-6897468555074184',
-    },
+    // AdSense審査通過後に再有効化
+    // other: {
+    //   'google-adsense-account': 'ca-pub-6897468555074184',
+    // },
   };
 }
 
@@ -52,7 +53,8 @@ export default async function RootLayout({
         className={`${inter.className} bg-gray-900 text-white`}
       >
         {/* IDは環境変数から読み込むのがベスト */}
-        <GoogleAdsense pId={process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ID!} />
+        {/* AdSense審査通過後に再有効化 */}
+        {/* <GoogleAdsense pId={process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ID!} /> */}
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>
