@@ -122,14 +122,25 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
     }
   }, [inView, hasMore, isLoading, loadMoreImages]);
 
-  // タグ選択ハンドラ
+  // タグ選択ハンドラ: タグページへ遷移
   const handleTagSelect = (tagId: string) => {
-    setSelectedTagId((prev) => (prev === tagId ? "" : tagId));
+    if (selectedTagId === tagId) {
+      // 同じタグを再度クリック → フィルタ解除してトップへ
+      setSelectedTagId("");
+      router.push(`/${locale}`);
+    } else {
+      const tag = allTags.find(t => t.id === tagId);
+      if (tag) {
+        const tagName = getLocalizedTagName(tag);
+        router.push(`/${locale}/tags/${encodeURIComponent(tagName)}`);
+      }
+    }
   };
 
-  // タグクリア
+  // タグクリア: トップへ遷移
   const clearTagFilter = () => {
     setSelectedTagId("");
+    router.push(`/${locale}`);
   };
 
   // --- ヘルパー関数 ---
