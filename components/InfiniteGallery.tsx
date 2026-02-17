@@ -42,6 +42,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedTagName, setSelectedTagName] = useState(defaultTagName);
   const [showAllTags, setShowAllTags] = useState(false);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
 
   // 読み込み中フラグを追加
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +67,9 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
     const resetAndFetch = async () => {
       setIsLoading(true); // ロード開始
       try {
+        // getImagesは配列を直接返すため、変数名をnewImagesとして受け取る
         const newImages = await getImages(1, debouncedQuery, selectedTagName);
+        // newImages をセット
         setImages(newImages as any);
         setPage(2);
         setHasMore(newImages.length > 0);
