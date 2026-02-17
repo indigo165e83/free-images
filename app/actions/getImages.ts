@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 const IMAGES_PER_PAGE = 20;
 
-export async function getImages(page: number, searchQuery: string = "", tagId: string = "") {
+export async function getImages(page: number, searchQuery: string = "", tagName: string = "") {
   try {
     // 検索条件の構築
     const conditions: Record<string, unknown>[] = [];
@@ -28,10 +28,10 @@ export async function getImages(page: number, searchQuery: string = "", tagId: s
       });
     }
 
-    // タグフィルタ条件
-    if (tagId.trim()) {
+    // タグフィルタ条件（タグ名で検索）
+    if (tagName.trim()) {
       conditions.push({
-        tags: { some: { id: tagId } }
+        tags: { some: { OR: [{ nameJa: tagName }, { nameEn: tagName }] } }
       });
     }
 

@@ -20,7 +20,7 @@ const getLocalizedTagName = (tag: { nameJa: string; nameEn: string }, locale: st
   return tag.nameJa || tag.nameEn;
 };
 
-// タグ名からタグを検索するヘルパー
+// タグ名からタグを検索するヘルパー（代表の1件を返す）
 async function findTagByName(tagName: string) {
   return prisma.tag.findFirst({
     where: {
@@ -29,7 +29,15 @@ async function findTagByName(tagName: string) {
         { nameEn: tagName },
       ],
     },
-    include: { _count: { select: { images: true } } },
+  });
+}
+
+// タグ名に一致する全タグの画像数を集計
+async function countImagesByTagName(tagName: string) {
+  return prisma.image.count({
+    where: {
+      tags: { some: { OR: [{ nameJa: tagName }, { nameEn: tagName }] } },
+    },
   });
 }
 
@@ -38,7 +46,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tag: tagSlug, locale } = await params;
   const tagName = decodeURIComponent(tagSlug);
 
-  const tag = await findTagByName(tagName);
+  const [tag, imageCount] = await Promise.all([
+    findTagByName(tagName),
+    countImagesByTagName(tagName),
+  ]);
 
   if (!tag) {
     return { title: 'Tag not found | Free Images' };
@@ -49,8 +60,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `#${localizedName} - Free AI Images | Free Images`
     : `#${localizedName} のフリー画像一覧 | Free Images`;
   const description = locale === 'en'
-    ? `Browse ${tag._count.images} free AI-generated images tagged with "${localizedName}".`
-    : `「${localizedName}」タグが付いたAI生成フリー画像${tag._count.images}件を閲覧できます。`;
+    ? `Browse ${imageCount} free AI-generated images tagged with "${localizedName}".`
+    : `「${localizedName}」タグが付いたAI生成フリー画像${imageCount}件を閲覧できます。`;
 
   return {
     title,
@@ -72,9 +83,9 @@ export default async function TagPage({ params }: Props) {
 
   const localizedName = getLocalizedTagName(tag, locale);
 
-  // このタグで絞り込んだ最初の1ページ分を取得
+  // このタグ名で絞り込んだ最初の1ページ分を取得
   const [initialImages, allTags] = await Promise.all([
-    getImages(1, '', tag.id),
+    getImages(1, '', tagName),
     getTags(),
   ]);
 
@@ -93,14 +104,14 @@ export default async function TagPage({ params }: Props) {
             #{localizedName}
           </h1>
           <p className="mt-2 text-gray-400">
-            {t('imageCount', { count: initialImages.length > 0 ? allTags.find(t => t.id === tag.id)?.count ?? 0 : 0 })}
+            {t('imageCount', { count: initialImages.length > 0 ? allTags.filter(t => t.nameJa === tagName || t.nameEn === tagName).reduce((sum, t) => sum + t.count, 0) : 0 })}
           </p>
         </div>
       </div>
 
       {/* ギャラリー（タグでプリフィルタ済み） */}
       <div className="container mx-auto px-4 py-8">
-        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagId={tag.id} />
+        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagName={tagName} />
       </div>
     </main>
   );

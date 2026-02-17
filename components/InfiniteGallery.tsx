@@ -31,16 +31,16 @@ type TagType = {
 type Props = {
   initialImages: ImageType[];
   allTags: TagType[];
-  defaultTagId?: string;
+  defaultTagName?: string;
 };
 
-export default function InfiniteGallery({ initialImages, allTags, defaultTagId = "" }: Props) {
+export default function InfiniteGallery({ initialImages, allTags, defaultTagName = "" }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
   const [page, setPage] = useState(2); // 2ページ目から開始
   const [hasMore, setHasMore] = useState(true);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [selectedTagId, setSelectedTagId] = useState(defaultTagId);
+  const [selectedTagName, setSelectedTagName] = useState(defaultTagName);
   const [showAllTags, setShowAllTags] = useState(false);
 
   // 読み込み中フラグを追加
@@ -61,12 +61,12 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
 
   // 検索条件またはタグフィルタが変わったらリストをリセット
   useEffect(() => {
-    if (debouncedQuery === "" && selectedTagId === "" && images === initialImages) return;
+    if (debouncedQuery === "" && selectedTagName === "" && images === initialImages) return;
 
     const resetAndFetch = async () => {
       setIsLoading(true); // ロード開始
       try {
-        const newImages = await getImages(1, debouncedQuery, selectedTagId);
+        const newImages = await getImages(1, debouncedQuery, selectedTagName);
         setImages(newImages as any);
         setPage(2);
         setHasMore(newImages.length > 0);
@@ -77,7 +77,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
 
     resetAndFetch();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery, selectedTagId]);
+  }, [debouncedQuery, selectedTagName]);
 
   // 追加読み込み
   const loadMoreImages = useCallback(async () => {
@@ -87,7 +87,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
     setIsLoading(true); // ロックをかける
     try {
       const nextPage = page;
-      const newImages = await getImages(nextPage, debouncedQuery, selectedTagId);
+      const newImages = await getImages(nextPage, debouncedQuery, selectedTagName);
 
       if (newImages.length === 0) {
         setHasMore(false);
@@ -113,7 +113,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
     } finally {
       setIsLoading(false); // ロック解除
     }
-  }, [page, debouncedQuery, selectedTagId, hasMore, isLoading]);
+  }, [page, debouncedQuery, selectedTagName, hasMore, isLoading]);
 
   // スクロール検知
   useEffect(() => {
@@ -124,22 +124,21 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
 
   // タグ選択ハンドラ: タグページへ遷移
   const handleTagSelect = (tagId: string) => {
-    if (selectedTagId === tagId) {
+    const tag = allTags.find(t => t.id === tagId);
+    if (!tag) return;
+    const tagName = getLocalizedTagName(tag);
+    if (selectedTagName === tagName) {
       // 同じタグを再度クリック → フィルタ解除してトップへ
-      setSelectedTagId("");
+      setSelectedTagName("");
       router.push(`/${locale}`);
     } else {
-      const tag = allTags.find(t => t.id === tagId);
-      if (tag) {
-        const tagName = getLocalizedTagName(tag);
-        router.push(`/${locale}/tags/${encodeURIComponent(tagName)}`);
-      }
+      router.push(`/${locale}/tags/${encodeURIComponent(tagName)}`);
     }
   };
 
   // タグクリア: トップへ遷移
   const clearTagFilter = () => {
-    setSelectedTagId("");
+    setSelectedTagName("");
     router.push(`/${locale}`);
   };
 
@@ -157,10 +156,10 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
     return tag.nameJa || tag.nameEn;
   };
 
-  // 選択中のタグ名を取得
-  const selectedTagName = selectedTagId
-    ? getLocalizedTagName(allTags.find((tag) => tag.id === selectedTagId) || { nameJa: '', nameEn: '' })
-    : '';
+  // タグがアクティブかどうか判定
+  const isTagActive = (tag: TagType) => {
+    return selectedTagName === getLocalizedTagName(tag);
+  };
 
   // 表示するタグ数を制限
   const VISIBLE_TAG_COUNT = 20;
@@ -192,7 +191,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
           <div className="flex items-center gap-2 mb-3">
             <Tag className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-400 font-medium">{t('tagFilterLabel')}</span>
-            {selectedTagId && (
+            {selectedTagName && (
               <button
                 onClick={clearTagFilter}
                 className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
@@ -208,13 +207,13 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
                 key={tag.id}
                 onClick={() => handleTagSelect(tag.id)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
-                  selectedTagId === tag.id
+                  isTagActive(tag)
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                     : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700'
                 }`}
               >
                 <span>#{getLocalizedTagName(tag)}</span>
-                <span className={`text-xs ${selectedTagId === tag.id ? 'text-indigo-200' : 'text-gray-500'}`}>
+                <span className={`text-xs ${isTagActive(tag) ? 'text-indigo-200' : 'text-gray-500'}`}>
                   {tag.count}
                 </span>
               </button>
@@ -235,9 +234,9 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex items-center justify-between mb-6 border-l-4 border-indigo-500 pl-4">
           <h3 className="text-xl font-bold">
-            {debouncedQuery || selectedTagId ?
+            {debouncedQuery || selectedTagName ?
               t('searchResultTitle', {
-                query: selectedTagId
+                query: selectedTagName
                   ? (debouncedQuery ? `${debouncedQuery} × #${selectedTagName}` : `#${selectedTagName}`)
                   : debouncedQuery,
                 count: images.length
@@ -300,7 +299,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
         {images.length === 0 && !hasMore && (
            <div className="text-center py-20 text-gray-500">
              <p className="text-xl">
-               {debouncedQuery || selectedTagId ? t('noImagesSearch') : t('noImages')}
+               {debouncedQuery || selectedTagName ? t('noImagesSearch') : t('noImages')}
              </p>
            </div>
         )}
