@@ -73,7 +73,7 @@ export default function TagEditor({ imageId, tags, isAdmin }: Props) {
             }`}
           >
             {/* 言語に応じて表示を切り替え。タグページへのリンク */}
-            <Link href={`/${locale}/tags/${tag.id}`} className="hover:text-white transition-colors">
+            <Link href={`/${locale}/tags/${encodeURIComponent(getTagName(tag))}`} className="hover:text-white transition-colors">
               #{getTagName(tag)}
             </Link>
 

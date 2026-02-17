@@ -10,7 +10,7 @@ import Link from 'next/link';
 interface Props {
   params: Promise<{
     locale: string;
-    tag: string; // tag ID
+    tag: string; // tag name (URL encoded)
   }>;
 }
 
@@ -20,26 +20,37 @@ const getLocalizedTagName = (tag: { nameJa: string; nameEn: string }, locale: st
   return tag.nameJa || tag.nameEn;
 };
 
-// 動的メタデータ
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { tag: tagId, locale } = await params;
-
-  const tag = await prisma.tag.findUnique({
-    where: { id: tagId },
+// タグ名からタグを検索するヘルパー
+async function findTagByName(tagName: string) {
+  return prisma.tag.findFirst({
+    where: {
+      OR: [
+        { nameJa: tagName },
+        { nameEn: tagName },
+      ],
+    },
     include: { _count: { select: { images: true } } },
   });
+}
+
+// 動的メタデータ
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { tag: tagSlug, locale } = await params;
+  const tagName = decodeURIComponent(tagSlug);
+
+  const tag = await findTagByName(tagName);
 
   if (!tag) {
     return { title: 'Tag not found | Free Images' };
   }
 
-  const tagName = getLocalizedTagName(tag, locale);
+  const localizedName = getLocalizedTagName(tag, locale);
   const title = locale === 'en'
-    ? `#${tagName} - Free AI Images | Free Images`
-    : `#${tagName} のフリー画像一覧 | Free Images`;
+    ? `#${localizedName} - Free AI Images | Free Images`
+    : `#${localizedName} のフリー画像一覧 | Free Images`;
   const description = locale === 'en'
-    ? `Browse ${tag._count.images} free AI-generated images tagged with "${tagName}".`
-    : `「${tagName}」タグが付いたAI生成フリー画像${tag._count.images}件を閲覧できます。`;
+    ? `Browse ${tag._count.images} free AI-generated images tagged with "${localizedName}".`
+    : `「${localizedName}」タグが付いたAI生成フリー画像${tag._count.images}件を閲覧できます。`;
 
   return {
     title,
@@ -50,21 +61,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function TagPage({ params }: Props) {
-  const { tag: tagId, locale } = await params;
+  const { tag: tagSlug, locale } = await params;
+  const tagName = decodeURIComponent(tagSlug);
   const t = await getTranslations({ locale, namespace: 'TagPage' });
 
-  // タグ情報を取得
-  const tag = await prisma.tag.findUnique({
-    where: { id: tagId },
-  });
+  // タグ名でタグ情報を取得
+  const tag = await findTagByName(tagName);
 
   if (!tag) return notFound();
 
-  const tagName = getLocalizedTagName(tag, locale);
+  const localizedName = getLocalizedTagName(tag, locale);
 
   // このタグで絞り込んだ最初の1ページ分を取得
   const [initialImages, allTags] = await Promise.all([
-    getImages(1, '', tagId),
+    getImages(1, '', tag.id),
     getTags(),
   ]);
 
@@ -80,17 +90,17 @@ export default async function TagPage({ params }: Props) {
             {t('backToGallery')}
           </Link>
           <h1 className="mt-4 text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            #{tagName}
+            #{localizedName}
           </h1>
           <p className="mt-2 text-gray-400">
-            {t('imageCount', { count: initialImages.length > 0 ? allTags.find(t => t.id === tagId)?.count ?? 0 : 0 })}
+            {t('imageCount', { count: initialImages.length > 0 ? allTags.find(t => t.id === tag.id)?.count ?? 0 : 0 })}
           </p>
         </div>
       </div>
 
       {/* ギャラリー（タグでプリフィルタ済み） */}
       <div className="container mx-auto px-4 py-8">
-        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagId={tagId} />
+        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagId={tag.id} />
       </div>
     </main>
   );

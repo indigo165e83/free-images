@@ -259,7 +259,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagId =
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          router.push(`/${locale}/tags/${tag.id}`);
+                          router.push(`/${locale}/tags/${encodeURIComponent(getLocalizedTagName(tag))}`);
                         }}
                         className="text-[10px] px-1.5 py-0.5 rounded text-white cursor-pointer transition-colors bg-indigo-600/80 hover:bg-indigo-500"
                       >
