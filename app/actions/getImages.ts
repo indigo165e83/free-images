@@ -39,21 +39,30 @@ export async function getImages(page: number, searchQuery: string = "", tagName:
       ? { AND: conditions }
       : {};
 
-    const images = await prisma.image.findMany({
-      where: whereCondition, // 条件を適用
-      skip: (page - 1) * IMAGES_PER_PAGE,
-      take: IMAGES_PER_PAGE,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      // 必要なフィールドを取得 (ImageGalleryと同じ型定義に合わせるためtagsを含める)
-      include: {
-        tags: true
-      }
-    });
-    return images;
+    // 並行してデータ取得とカウントを行う
+    const [images, totalCount] = await Promise.all([
+      prisma.image.findMany({
+        where: whereCondition,
+        skip: (page - 1) * IMAGES_PER_PAGE,
+        take: IMAGES_PER_PAGE,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          tags: true
+        }
+      }),
+      prisma.image.count({
+        where: whereCondition
+      })
+    ]);
+
+    // ★修正: 配列ではなく、imagesとtotalCountを含むオブジェクトを返す
+    return { images, totalCount };
+    
   } catch (error) {
     console.error('Error fetching images:', error);
-    return [];
+    // エラー時もオブジェクト形式で返す
+    return { images: [], totalCount: 0 };
   }
 }

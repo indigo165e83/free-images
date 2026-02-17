@@ -84,7 +84,7 @@ export default async function TagPage({ params }: Props) {
   const localizedName = getLocalizedTagName(tag, locale);
 
   // このタグ名で絞り込んだ最初の1ページ分を取得
-  const [initialImages, allTags] = await Promise.all([
+  const [{ images: initialImages, totalCount: initialTotalCount }, allTags] = await Promise.all([
     getImages(1, '', tagName),
     getTags(locale),
   ]);
@@ -104,14 +104,14 @@ export default async function TagPage({ params }: Props) {
             #{localizedName}
           </h1>
           <p className="mt-2 text-gray-400">
-            {t('imageCount', { count: initialImages.length > 0 ? allTags.filter(t => t.nameJa === tagName || t.nameEn === tagName).reduce((sum, t) => sum + t.count, 0) : 0 })}
+            {t('imageCount', { count: initialTotalCount })}
           </p>
         </div>
       </div>
 
       {/* ギャラリー（タグでプリフィルタ済み） */}
       <div className="container mx-auto px-4 py-8">
-        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagName={tagName} />
+        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagName={tagName} initialTotalCount={initialTotalCount} />
       </div>
     </main>
   );
