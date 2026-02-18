@@ -96,6 +96,9 @@ model Tag {
   nameJa   String  // @uniqueしない。プログラムで制御する
   nameEn   String  // @uniqueしない。プログラムで制御する
   slug     String  @unique // URLフレンドリーな一意の識別子
+  // 言語ごとに別名を管理
+  aliasesJa String[] @default([]) // 例: ["仔兎", "ウサギの子"]
+  aliasesEn String[] @default([]) // 例: ["Baby Bunny", "Bunny", "Kit"]  
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   images Image[]

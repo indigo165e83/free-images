@@ -17,36 +17,97 @@ export function generateSlug(nameEn: string): string {
 
 /**
  * タグ配列に対して、DB・バッチ内の重複を考慮した一意のslugを割り当てる。
- * - nameEn が英数字を含まない場合（日本語等）は "tag-xxxxxxxx" にフォールバック。
- * - 同一バッチ内で同じ候補slugが複数生じた場合も "-2", "-3" ... で回避する。
+ * また、既存のタグがある場合はaliasesJaに追加・更新を行う。
+ * * 戻り値には、新規作成すべきタグ情報と、紐付けるべき既存タグIDを含める設計にするのが理想だが、
+ * ここでは既存の戻り値の型 { nameJa, nameEn, slug } を維持しつつ、
+ * 「既存タグがある場合」はその既存タグの正規の nameJa, nameEn, slug を返すように振る舞う。
+ * (呼び出し元である uploadImage.ts などが、この戻り値を使って connectOrCreate 的な処理をする前提)
+ * * ただし、aliasesの更新はこの関数内で副作用として実行してしまうのが、
+ * 既存コードへの影響を最小限にする現実的なアプローチです。
  */
 export async function buildTagsWithUniqueSlug(
   tags: { ja: string; en: string }[],
   prisma: PrismaClient
 ): Promise<{ nameJa: string; nameEn: string; slug: string }[]> {
-  // DBの既存slug一覧を取得（重複チェック用）
-  const existing = await prisma.tag.findMany({ select: { slug: true } });
-  const takenSlugs = new Set(existing.map((t) => t.slug));
+  const resultTags: { nameJa: string; nameEn: string; slug: string }[] = [];
+  
+  // バッチ内で処理済みのslugを記録（重複回避用）
+  const processedSlugs = new Set<string>();
 
-  return tags.map((tag) => {
+  for (const tag of tags) {
     const nameJa = typeof tag.ja === "string" ? tag.ja : String(tag.ja);
     const nameEn = typeof tag.en === "string" ? tag.en : String(tag.en);
+    
+    // nameEn から slug 候補を生成
+    const baseSlug = generateSlug(nameEn) || `tag-${crypto.randomBytes(4).toString("hex")}`;
+    
+    // 1. まず英語名(nameEn) または slug で既存タグを検索
+    const existingTag = await prisma.tag.findFirst({
+      where: {
+        OR: [
+          { nameEn: nameEn }, // 完全一致
+          { slug: baseSlug }  // slug一致
+        ]
+      }
+    });
 
-    // base slug を生成。英数字が残らない場合は "tag-xxxxxxxx" にフォールバック
-    const base = generateSlug(nameEn) || `tag-${crypto.randomBytes(4).toString("hex")}`;
+    if (existingTag) {
+      // 2-A. 既存タグがある場合
+      
+      // aliasesJa に今回の nameJa が含まれていなければ追加更新
+      if (
+        existingTag.nameJa !== nameJa && 
+        !existingTag.aliasesJa.includes(nameJa)
+      ) {
+        await prisma.tag.update({
+          where: { id: existingTag.id },
+          data: {
+            aliasesJa: {
+              push: nameJa
+            }
+          }
+        });
+        console.log(`🔄 Updated alias for tag "${existingTag.nameEn}": added "${nameJa}"`);
+      }
 
-    // DB・バッチ内の既存slugと衝突しない slug を決定
-    let slug = base;
-    let suffix = 2;
-    while (takenSlugs.has(slug)) {
-      slug = `${base}-${suffix++}`;
+      // 結果として返すのは「既存タグの正規の情報」
+      // これにより、呼び出し元は既存タグに紐付けを行うことができる
+      resultTags.push({
+        nameJa: existingTag.nameJa,
+        nameEn: existingTag.nameEn,
+        slug: existingTag.slug
+      });
+      
+      processedSlugs.add(existingTag.slug);
+
+    } else {
+      // 2-B. 既存タグがない場合（新規作成）
+      
+      // バッチ内での重複チェック
+      let slug = baseSlug;
+      let suffix = 2;
+      
+      // DBに問い合わせて、他に使われていないか念のためチェック
+      // (上のfindFirstでヒットしなかったが、念のためslug単体で衝突チェック)
+      // かつ、このバッチ内ですでに生成されたslugとも重複しないようにする
+      while (
+        processedSlugs.has(slug) || 
+        (await prisma.tag.findUnique({ where: { slug } }))
+      ) {
+        slug = `${baseSlug}-${suffix++}`;
+      }
+
+      processedSlugs.add(slug);
+      
+      resultTags.push({
+        nameJa,
+        nameEn,
+        slug
+      });
     }
+  }
 
-    // バッチ内の後続タグでも同じ slug を使わないようにマーク
-    takenSlugs.add(slug);
-
-    return { nameJa, nameEn, slug };
-  });
+  return resultTags;
 }
 
 // クライアントの初期化 (シングルトン的に再利用)
@@ -193,11 +254,21 @@ export async function generateTagsWithGemini(
     const response = await result.response;
     const tagText = response.text().replace(/```json|```/g, "").trim();
 
-    const tags= JSON.parse(tagText);
+    const tags = JSON.parse(tagText);
     if (Array.isArray(tags)) {
           // 最初の10個を取得
           console.log("✅ Generated Tags:", tags.length);
-          return tags.slice(0, 10);
+          
+          // ▼▼▼ Title Case への変換処理 ▼▼▼
+          return tags.slice(0, 10).map((tag: { ja: string; en: string }) => ({
+            ja: tag.ja,
+            // 英語タグ: スペースで分割し、各単語の先頭を大文字、2文字目以降はそのまま結合
+            en: tag.en
+              .split(' ')
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+          }));
+          // ▲▲▲
     }
     return [];
   } catch (error) {
@@ -264,7 +335,8 @@ Return ONLY a valid JSON object (no markdown, no explanation):
 {
   "ja": "日本語の説明文",
   "en": "English description"
-}`;
+}
+`;
 
   const imagePart = {
     inlineData: {
