@@ -28,11 +28,27 @@ export async function getImages(page: number, searchQuery: string = "", tagSlug:
       });
     }
 
-    // タグフィルタ条件（slugで検索）
+    // タグフィルタ条件（slugまたはnameで検索）
     if (tagSlug.trim()) {
-      conditions.push({
-        tags: { some: { slug: tagSlug } }
+      // slugで対応するタグを検索し、同じ名前を持つすべてのタグを取得
+      const foundTag = await prisma.tag.findUnique({
+        where: { slug: tagSlug },
+        select: { nameJa: true, nameEn: true },
       });
+
+      if (foundTag) {
+        // 同じnameJaまたはnameEnを持つすべてのタグで検索
+        conditions.push({
+          tags: {
+            some: {
+              OR: [
+                { nameJa: foundTag.nameJa },
+                { nameEn: foundTag.nameEn },
+              ],
+            },
+          },
+        });
+      }
     }
 
     const whereCondition = conditions.length > 0
