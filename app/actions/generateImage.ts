@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini, getImageDimensions, generateSlug } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini, getImageDimensions, buildTagsWithUniqueSlug } from "@/lib/server-utils"; // 共通関数
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -51,6 +51,9 @@ export async function generateImage(formData: FormData) {
       getImageDimensions(imageBuffer)
     ]);
 
+    // DB・バッチ内の重複を考慮した一意のslugを事前に決定
+    const tagsWithSlug = await buildTagsWithUniqueSlug(tags, prisma);
+
     // 4. DB保存
     await prisma.image.create({
       data: {
@@ -66,22 +69,11 @@ export async function generateImage(formData: FormData) {
         height: dimensions.height,
         userId: session.user.id,
         tags: {
-          connectOrCreate: tags.map((tag) => ({
-            // 複合ユニークキー (nameJa_nameEn) を指定
-            where: { 
-              nameJa_nameEn: {
-                // 念のため String() でキャストして型エラーを防ぐ
-                nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
-                nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
-              }
-            },
-            // 新しいカラム名で保存
-            create: {
-              // 念のため String() でキャストして型エラーを防ぐ
-              nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
-              nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
-              slug: generateSlug(typeof tag.en === 'string' ? tag.en : String(tag.en)) || String(tag.en).toLowerCase(),
-            },
+          connectOrCreate: tagsWithSlug.map(({ nameJa, nameEn, slug }) => ({
+            // 複合ユニークキー (nameJa_nameEn) で既存タグを検索
+            where: { nameJa_nameEn: { nameJa, nameEn } },
+            // 新規タグは重複チェック済みのslugで作成
+            create: { nameJa, nameEn, slug },
           })),
         },
       },
