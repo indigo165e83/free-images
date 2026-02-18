@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini, getImageDimensions } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, translatePrompt, generateDescriptionWithGemini, getImageDimensions, generateSlug } from "@/lib/server-utils"; // 共通関数
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -76,10 +76,11 @@ export async function generateImage(formData: FormData) {
               }
             },
             // 新しいカラム名で保存
-            create: { 
+            create: {
               // 念のため String() でキャストして型エラーを防ぐ
               nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
               nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
+              slug: generateSlug(typeof tag.en === 'string' ? tag.en : String(tag.en)) || String(tag.en).toLowerCase(),
             },
           })),
         },

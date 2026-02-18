@@ -3,6 +3,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import crypto from "crypto";
 import sharp from "sharp";  // 画像処理(webp化)ライブラリ
 
+/**
+ * nameEn からURLフレンドリーなslugを生成する
+ */
+export function generateSlug(nameEn: string): string {
+  return nameEn
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "") // 英数字・スペース・ハイフン以外を除去
+    .replace(/\s+/g, "-")          // スペースをハイフンに変換
+    .replace(/^-+|-+$/g, "");      // 先頭・末尾のハイフンを除去
+}
+
 // クライアントの初期化 (シングルトン的に再利用)
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
