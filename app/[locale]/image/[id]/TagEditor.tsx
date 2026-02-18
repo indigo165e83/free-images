@@ -10,6 +10,7 @@ type Tag = {
   id: string;
   nameJa: string;
   nameEn: string;
+  slug: string;
 };
 
 type Props = {
@@ -73,7 +74,7 @@ export default function TagEditor({ imageId, tags, isAdmin }: Props) {
             }`}
           >
             {/* 言語に応じて表示を切り替え。タグページへのリンク */}
-            <Link href={`/${locale}/tags/${encodeURIComponent(getTagName(tag))}`} className="hover:text-white transition-colors">
+            <Link href={`/${locale}/tags/${tag.slug}`} className="hover:text-white transition-colors">
               #{getTagName(tag)}
             </Link>
 
