@@ -95,8 +95,9 @@ model Tag {
   id     String  @id @default(cuid())
   nameJa   String  // @uniqueしない。プログラムで制御する
   nameEn   String  // @uniqueしない。プログラムで制御する
+  slug     String  @unique // URLフレンドリーな一意の識別子
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt  
+  updatedAt DateTime @default(now()) @updatedAt
   images Image[]
 
   @@unique([nameJa, nameEn])  // 日本語と英語のペアで重複を防ぐ 複合ユニーク制約（Composite Unique Constraint）
