@@ -5,6 +5,15 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+// nameEn からURLフレンドリーなslugを生成する
+function generateSlug(nameEn: string): string {
+  return nameEn
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "") // 英数字・スペース・ハイフン以外を除去
+    .replace(/\s+/g, "-")          // スペースをハイフンに変換
+    .replace(/^-+|-+$/g, "");      // 先頭・末尾のハイフンを除去
+}
+
 // タグを画像から外す（削除）
 export async function removeTagFromImage(imageId: string, tagId: string) {
   const session = await auth();
@@ -56,13 +65,23 @@ export async function addTagToImage(imageId: string, tagName: string) {
     // 既存タグがなければ新規作成 (Create)して紐付け
     // ※現在は入力フォームが1つなので、暫定的にJa/En両方に同じ値を入れます。
     // 将来的には自動翻訳APIを使って、片方を翻訳した値を入れるのが理想的です。
+
+    // slugを生成し、重複する場合はランダムサフィックスを付与する
+    const baseSlug = generateSlug(cleanTagName) || cleanTagName.toLowerCase();
+    let slug = baseSlug;
+    const existingSlug = await prisma.tag.findUnique({ where: { slug } });
+    if (existingSlug) {
+      slug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
+    }
+
     await prisma.image.update({
       where: { id: imageId },
       data: {
         tags: {
           create: {
             nameJa: cleanTagName,
-            nameEn: cleanTagName, 
+            nameEn: cleanTagName,
+            slug,
           },
         },
       },
