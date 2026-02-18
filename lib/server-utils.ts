@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 import sharp from "sharp";  // 画像処理(webp化)ライブラリ
 
@@ -12,6 +13,40 @@ export function generateSlug(nameEn: string): string {
     .replace(/[^a-z0-9\s-]/g, "") // 英数字・スペース・ハイフン以外を除去
     .replace(/\s+/g, "-")          // スペースをハイフンに変換
     .replace(/^-+|-+$/g, "");      // 先頭・末尾のハイフンを除去
+}
+
+/**
+ * タグ配列に対して、DB・バッチ内の重複を考慮した一意のslugを割り当てる。
+ * - nameEn が英数字を含まない場合（日本語等）は "tag-xxxxxxxx" にフォールバック。
+ * - 同一バッチ内で同じ候補slugが複数生じた場合も "-2", "-3" ... で回避する。
+ */
+export async function buildTagsWithUniqueSlug(
+  tags: { ja: string; en: string }[],
+  prisma: PrismaClient
+): Promise<{ nameJa: string; nameEn: string; slug: string }[]> {
+  // DBの既存slug一覧を取得（重複チェック用）
+  const existing = await prisma.tag.findMany({ select: { slug: true } });
+  const takenSlugs = new Set(existing.map((t) => t.slug));
+
+  return tags.map((tag) => {
+    const nameJa = typeof tag.ja === "string" ? tag.ja : String(tag.ja);
+    const nameEn = typeof tag.en === "string" ? tag.en : String(tag.en);
+
+    // base slug を生成。英数字が残らない場合は "tag-xxxxxxxx" にフォールバック
+    const base = generateSlug(nameEn) || `tag-${crypto.randomBytes(4).toString("hex")}`;
+
+    // DB・バッチ内の既存slugと衝突しない slug を決定
+    let slug = base;
+    let suffix = 2;
+    while (takenSlugs.has(slug)) {
+      slug = `${base}-${suffix++}`;
+    }
+
+    // バッチ内の後続タグでも同じ slug を使わないようにマーク
+    takenSlugs.add(slug);
+
+    return { nameJa, nameEn, slug };
+  });
 }
 
 // クライアントの初期化 (シングルトン的に再利用)

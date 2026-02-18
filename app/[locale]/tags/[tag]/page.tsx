@@ -10,7 +10,7 @@ import Link from 'next/link';
 interface Props {
   params: Promise<{
     locale: string;
-    tag: string; // tag name (URL encoded)
+    tag: string; // tag slug
   }>;
 }
 
@@ -20,23 +20,18 @@ const getLocalizedTagName = (tag: { nameJa: string; nameEn: string }, locale: st
   return tag.nameJa || tag.nameEn;
 };
 
-// タグ名からタグを検索するヘルパー（代表の1件を返す）
-async function findTagByName(tagName: string) {
-  return prisma.tag.findFirst({
-    where: {
-      OR: [
-        { nameJa: tagName },
-        { nameEn: tagName },
-      ],
-    },
+// slugからタグを検索するヘルパー
+async function findTagBySlug(slug: string) {
+  return prisma.tag.findUnique({
+    where: { slug },
   });
 }
 
-// タグ名に一致する全タグの画像数を集計
-async function countImagesByTagName(tagName: string) {
+// slugに一致するタグの画像数を集計
+async function countImagesByTagSlug(slug: string) {
   return prisma.image.count({
     where: {
-      tags: { some: { OR: [{ nameJa: tagName }, { nameEn: tagName }] } },
+      tags: { some: { slug } },
     },
   });
 }
@@ -44,11 +39,10 @@ async function countImagesByTagName(tagName: string) {
 // 動的メタデータ
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tag: tagSlug, locale } = await params;
-  const tagName = decodeURIComponent(tagSlug);
 
   const [tag, imageCount] = await Promise.all([
-    findTagByName(tagName),
-    countImagesByTagName(tagName),
+    findTagBySlug(tagSlug),
+    countImagesByTagSlug(tagSlug),
   ]);
 
   if (!tag) {
@@ -73,19 +67,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TagPage({ params }: Props) {
   const { tag: tagSlug, locale } = await params;
-  const tagName = decodeURIComponent(tagSlug);
   const t = await getTranslations({ locale, namespace: 'TagPage' });
 
-  // タグ名でタグ情報を取得
-  const tag = await findTagByName(tagName);
+  // slugでタグ情報を取得
+  const tag = await findTagBySlug(tagSlug);
 
   if (!tag) return notFound();
 
   const localizedName = getLocalizedTagName(tag, locale);
 
-  // このタグ名で絞り込んだ最初の1ページ分を取得
+  // このslugで絞り込んだ最初の1ページ分を取得
   const [{ images: initialImages, totalCount: initialTotalCount }, allTags] = await Promise.all([
-    getImages(1, '', tagName),
+    getImages(1, '', tagSlug),
     getTags(locale),
   ]);
 
@@ -111,7 +104,7 @@ export default async function TagPage({ params }: Props) {
 
       {/* ギャラリー（タグでプリフィルタ済み） */}
       <div className="container mx-auto px-4 py-8">
-        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagName={tagName} initialTotalCount={initialTotalCount} />
+        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagSlug={tagSlug} initialTotalCount={initialTotalCount} />
       </div>
     </main>
   );

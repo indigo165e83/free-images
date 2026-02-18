@@ -16,7 +16,7 @@ type ImageType = {
   promptEn: string | null;
   descriptionJa: string | null;
   descriptionEn: string | null;
-  tags: { id: string; nameJa: string; nameEn: string }[];
+  tags: { id: string; nameJa: string; nameEn: string; slug: string }[];
   createdAt: Date;
 };
 
@@ -24,23 +24,24 @@ type TagType = {
   id: string;
   nameJa: string;
   nameEn: string;
+  slug: string;
   count: number;
 };
 
 type Props = {
   initialImages: ImageType[];
   allTags: TagType[];
-  defaultTagName?: string;
+  defaultTagSlug?: string;
   initialTotalCount?: number;
 };
 
-export default function InfiniteGallery({ initialImages, allTags, defaultTagName = "", initialTotalCount = 0 }: Props) {
+export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug = "", initialTotalCount = 0 }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
   const [page, setPage] = useState(2);
   const [hasMore, setHasMore] = useState(true);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [selectedTagName, setSelectedTagName] = useState(defaultTagName);
+  const [selectedTagSlug, setSelectedTagSlug] = useState(defaultTagSlug);
   const [showAllTags, setShowAllTags] = useState(false);
   
   const [totalCount, setTotalCount] = useState<number>(initialTotalCount || initialImages.length); 
@@ -61,13 +62,13 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
 
   // 検索条件またはタグフィルタが変わったらリストをリセット
   useEffect(() => {
-    if (debouncedQuery === "" && selectedTagName === "" && images === initialImages) return;
+    if (debouncedQuery === "" && selectedTagSlug === "" && images === initialImages) return;
 
     const resetAndFetch = async () => {
       setIsLoading(true);
       try {
         // ★修正: getImagesの戻り値変更に対応
-        const { images: newImages, totalCount: count } = await getImages(1, debouncedQuery, selectedTagName);
+        const { images: newImages, totalCount: count } = await getImages(1, debouncedQuery, selectedTagSlug);
         
         setImages(newImages as any);
         setTotalCount(count); 
@@ -80,7 +81,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
 
     resetAndFetch();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery, selectedTagName]);
+  }, [debouncedQuery, selectedTagSlug]);
 
   // 追加読み込み
   const loadMoreImages = useCallback(async () => {
@@ -90,7 +91,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
     try {
       const nextPage = page;
       // ★修正: getImagesの戻り値変更に対応
-      const { images: newImages, totalCount: count } = await getImages(nextPage, debouncedQuery, selectedTagName);
+      const { images: newImages, totalCount: count } = await getImages(nextPage, debouncedQuery, selectedTagSlug);
 
       if (newImages.length === 0) {
         setHasMore(false);
@@ -113,7 +114,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedQuery, selectedTagName, hasMore, isLoading]);
+  }, [page, debouncedQuery, selectedTagSlug, hasMore, isLoading]);
 
   // スクロール検知
   useEffect(() => {
@@ -140,36 +141,32 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setQuery(val);
-    if (val && selectedTagName) {
-      setSelectedTagName("");
+    if (val && selectedTagSlug) {
+      setSelectedTagSlug("");
     }
   };
 
   // タグ選択ハンドラ (排他制御)
-  const handleTagSelect = (tagId: string) => {
+  const handleTagSelect = (tagSlug: string) => {
     setQuery("");
     setDebouncedQuery("");
-    
-    const tag = allTags.find(t => t.id === tagId);
-    if (!tag) return;
-    const tagName = getLocalizedTagName(tag);
-    
-    if (selectedTagName === tagName) {
-      setSelectedTagName("");
+
+    if (selectedTagSlug === tagSlug) {
+      setSelectedTagSlug("");
       router.push(`/${locale}`);
     } else {
-      setSelectedTagName(tagName);
-      router.push(`/${locale}/tags/${encodeURIComponent(tagName)}`);
+      setSelectedTagSlug(tagSlug);
+      router.push(`/${locale}/tags/${tagSlug}`);
     }
   };
 
   const clearTagFilter = () => {
-    setSelectedTagName("");
+    setSelectedTagSlug("");
     router.push(`/${locale}`);
   };
 
   const isTagActive = (tag: TagType) => {
-    return selectedTagName === getLocalizedTagName(tag);
+    return selectedTagSlug === tag.slug;
   };
 
   const VISIBLE_TAG_COUNT = 20;
@@ -201,7 +198,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
           <div className="flex items-center gap-2 mb-3">
             <Tag className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-400 font-medium">{t('tagFilterLabel')}</span>
-            {selectedTagName && (
+            {selectedTagSlug && (
               <button
                 onClick={clearTagFilter}
                 className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
@@ -215,7 +212,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
             {visibleTags.map((tag) => (
               <button
                 key={tag.id}
-                onClick={() => handleTagSelect(tag.id)}
+                onClick={() => handleTagSelect(tag.slug)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
                   isTagActive(tag)
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
@@ -255,12 +252,12 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
                 ({totalCount} {locale === 'en' ? 'results' : '件'})
               </span>
             </div>
-          ) : selectedTagName ? (
+          ) : selectedTagSlug ? (
             // B. タグ選択中の表示
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xl font-bold">
               <span className="flex items-center gap-2 text-indigo-200">
                 <Tag className="w-5 h-5 text-indigo-400" />
-                <span>#{selectedTagName}</span>
+                <span>#{getLocalizedTagName(allTags.find(t => t.slug === selectedTagSlug) ?? { nameJa: selectedTagSlug, nameEn: selectedTagSlug })}</span>
               </span>
               <span className="text-base font-normal text-gray-400 ml-1">
                 ({totalCount} {locale === 'en' ? 'results' : '件'})
@@ -296,7 +293,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          handleTagSelect(tag.id);
+                          handleTagSelect(tag.slug);
                         }}
                         className="text-[10px] px-1.5 py-0.5 rounded text-white cursor-pointer transition-colors bg-indigo-600/80 hover:bg-indigo-500"
                       >
@@ -326,7 +323,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagName
         {images.length === 0 && !hasMore && (
            <div className="text-center py-20 text-gray-500">
              <p className="text-xl">
-               {query || selectedTagName ? t('noImagesSearch') : t('noImages')}
+               {query || selectedTagSlug ? t('noImagesSearch') : t('noImages')}
              </p>
            </div>
         )}
