@@ -76,9 +76,9 @@ export default async function TagPage({ params }: Props) {
 
   const localizedName = getLocalizedTagName(tag, locale);
 
-  // このslugで絞り込んだ最初の1ページ分を取得
+  // タグオブジェクトのslugを使って画像を取得
   const [{ images: initialImages, totalCount: initialTotalCount }, allTags] = await Promise.all([
-    getImages(1, '', tagSlug),
+    getImages(1, '', tag.slug),
     getTags(locale),
   ]);
 
@@ -104,7 +104,7 @@ export default async function TagPage({ params }: Props) {
 
       {/* ギャラリー（タグでプリフィルタ済み） */}
       <div className="container mx-auto px-4 py-8">
-        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagSlug={tagSlug} initialTotalCount={initialTotalCount} />
+        <InfiniteGallery initialImages={initialImages} allTags={allTags} defaultTagSlug={tag.slug} initialTotalCount={initialTotalCount} />
       </div>
     </main>
   );

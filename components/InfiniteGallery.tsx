@@ -143,6 +143,10 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     setQuery(val);
     if (val && selectedTagSlug) {
       setSelectedTagSlug("");
+      // タグページから検索を開始した場合、ホームページにリダイレクト
+      if (defaultTagSlug) {
+        router.push(`/${locale}`);
+      }
     }
   };
 
