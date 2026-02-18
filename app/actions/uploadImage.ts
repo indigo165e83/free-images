@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { generateTagsWithGemini, saveImageToS3, generateDescriptionWithGemini, getImageDimensions } from "@/lib/server-utils"; // 共通関数
+import { generateTagsWithGemini, saveImageToS3, generateDescriptionWithGemini, getImageDimensions, generateSlug } from "@/lib/server-utils"; // 共通関数
 
 export async function uploadImage(formData: FormData) {
   // 1. ログインチェック
@@ -59,9 +59,10 @@ export async function uploadImage(formData: FormData) {
               }
             },
             // 新しいカラム名で保存
-            create: { 
+            create: {
               nameJa: typeof tag.ja === 'string' ? tag.ja : String(tag.ja),
-              nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en)
+              nameEn: typeof tag.en === 'string' ? tag.en : String(tag.en),
+              slug: generateSlug(typeof tag.en === 'string' ? tag.en : String(tag.en)) || String(tag.en).toLowerCase(),
             },
           })),
         },
