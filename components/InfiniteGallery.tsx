@@ -25,6 +25,7 @@ type TagType = {
   nameJa: string;
   nameEn: string;
   slug: string;
+  slugs: string[];
   count: number;
 };
 
@@ -60,6 +61,13 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     return () => clearTimeout(timer);
   }, [query]);
 
+  // selectedTagSlug に対応する全slugsを取得（集約済みタグは複数slugを持つ場合がある）
+  const getFilterSlugs = useCallback((primarySlug: string): string => {
+    if (!primarySlug) return "";
+    const tag = allTags.find(t => t.slug === primarySlug);
+    return tag ? tag.slugs.join(',') : primarySlug;
+  }, [allTags]);
+
   // 検索条件またはタグフィルタが変わったらリストをリセット
   useEffect(() => {
     if (debouncedQuery === "" && selectedTagSlug === "" && images === initialImages) return;
@@ -68,12 +76,12 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
       setIsLoading(true);
       try {
         // ★修正: getImagesの戻り値変更に対応
-        const { images: newImages, totalCount: count } = await getImages(1, debouncedQuery, selectedTagSlug);
-        
+        const { images: newImages, totalCount: count } = await getImages(1, debouncedQuery, getFilterSlugs(selectedTagSlug));
+
         setImages(newImages as any);
-        setTotalCount(count); 
+        setTotalCount(count);
         setPage(2);
-        setHasMore(newImages.length > 0 && newImages.length < count); 
+        setHasMore(newImages.length > 0 && newImages.length < count);
       } finally {
         setIsLoading(false);
       }
@@ -91,7 +99,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     try {
       const nextPage = page;
       // ★修正: getImagesの戻り値変更に対応
-      const { images: newImages, totalCount: count } = await getImages(nextPage, debouncedQuery, selectedTagSlug);
+      const { images: newImages, totalCount: count } = await getImages(nextPage, debouncedQuery, getFilterSlugs(selectedTagSlug));
 
       if (newImages.length === 0) {
         setHasMore(false);
@@ -114,7 +122,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedQuery, selectedTagSlug, hasMore, isLoading]);
+  }, [page, debouncedQuery, selectedTagSlug, hasMore, isLoading, getFilterSlugs]);
 
   // スクロール検知
   useEffect(() => {

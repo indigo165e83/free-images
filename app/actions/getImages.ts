@@ -28,10 +28,11 @@ export async function getImages(page: number, searchQuery: string = "", tagSlug:
       });
     }
 
-    // タグフィルタ条件（slugで検索）
+    // タグフィルタ条件（slugで検索）カンマ区切りで複数slug対応
     if (tagSlug.trim()) {
+      const slugs = tagSlug.split(',').map(s => s.trim()).filter(Boolean);
       conditions.push({
-        tags: { some: { slug: tagSlug } }
+        tags: { some: { slug: slugs.length === 1 ? slugs[0] : { in: slugs } } }
       });
     }
 
