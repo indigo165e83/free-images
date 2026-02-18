@@ -10,6 +10,7 @@ export async function getTags(locale: string = 'ja') {
         id: true,
         nameJa: true,
         nameEn: true,
+        slug: true,
         _count: {
           select: { images: true },
         },
@@ -20,7 +21,7 @@ export async function getTags(locale: string = 'ja') {
     const activeTags = tags.filter((tag) => tag._count.images > 0);
 
     // ロケールに応じたタグ名で集約（同じnameJaの複数レコードを1つにまとめる）
-    const aggregated = new Map<string, { id: string; nameJa: string; nameEn: string; count: number }>();
+    const aggregated = new Map<string, { id: string; nameJa: string; nameEn: string; slug: string; count: number }>();
     for (const tag of activeTags) {
       const key = locale === 'en' ? (tag.nameEn || tag.nameJa) : (tag.nameJa || tag.nameEn);
       const existing = aggregated.get(key);
@@ -31,6 +32,7 @@ export async function getTags(locale: string = 'ja') {
           id: tag.id,
           nameJa: tag.nameJa,
           nameEn: tag.nameEn,
+          slug: tag.slug,
           count: tag._count.images,
         });
       }
