@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { getImages } from '@/app/actions/getImages';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, X, Tag } from 'lucide-react';
+import { Search, X, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
@@ -35,6 +35,8 @@ type Props = {
   initialTotalCount?: number;
 };
 
+const INITIAL_TAGS_SHOWN = 15;
+
 export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug = "", initialTotalCount = 0 }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
   const [page, setPage] = useState(2);
@@ -43,9 +45,8 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedTagSlug, setSelectedTagSlug] = useState(defaultTagSlug);
   const [totalCount, setTotalCount] = useState<number>(initialTotalCount || initialImages.length);
-  const tagScrollRef = useRef<HTMLDivElement>(null);
-
   const [isLoading, setIsLoading] = useState(false);
+  const [tagsExpanded, setTagsExpanded] = useState(false);
   const { ref, inView } = useInView();
   const t = useTranslations('HomePage');
   const locale = useLocale();
@@ -122,13 +123,15 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     }
   }, [inView, hasMore, isLoading, loadMoreImages]);
 
-  // タグスクロール位置を復元
+  // 選択中のタグが表示範囲外にある場合は自動展開
   useEffect(() => {
-    const savedPos = sessionStorage.getItem('tagScrollPos');
-    if (savedPos && tagScrollRef.current) {
-      tagScrollRef.current.scrollLeft = parseInt(savedPos, 10);
+    if (selectedTagSlug) {
+      const idx = allTags.findIndex(t => t.slug === selectedTagSlug);
+      if (idx >= INITIAL_TAGS_SHOWN) {
+        setTagsExpanded(true);
+      }
     }
-  }, []);
+  }, [selectedTagSlug, allTags]);
 
   // --- ヘルパー関数 ---
   const getLocalizedPrompt = (image: ImageType) => {
@@ -215,20 +218,8 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
               </button>
             )}
           </div>
-          <div className="relative">
-            {/* 左フェード（スクロール可能であることを示すヒント） */}
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-gray-900 to-transparent z-10" />
-            {/* 右フェード */}
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-gray-900 to-transparent z-10" />
-            {/* 横スクロールするタグ一覧 */}
-            <div
-              ref={tagScrollRef}
-              className="flex gap-2 overflow-x-auto pt-5 pb-3 scrollbar-thin-dark"
-              onScroll={(e) => {
-                sessionStorage.setItem('tagScrollPos', String(e.currentTarget.scrollLeft));
-              }}
-            >
-              {allTags.map((tag) => (
+          <div className="flex flex-wrap gap-2 py-2">
+              {(tagsExpanded ? allTags : allTags.slice(0, INITIAL_TAGS_SHOWN)).map((tag) => (
                 <button
                   key={tag.id}
                   data-slug={tag.slug}
@@ -245,8 +236,25 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
                   </span>
                 </button>
               ))}
+              {allTags.length > INITIAL_TAGS_SHOWN && (
+                <button
+                  onClick={() => setTagsExpanded(!tagsExpanded)}
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all bg-gray-800/40 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700 border-dashed"
+                >
+                  {tagsExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" />
+                      {t('tagFilterShowLess')}
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      {t('tagFilterShowMore', { count: allTags.length - INITIAL_TAGS_SHOWN })}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
-          </div>
         </div>
       )}
 
