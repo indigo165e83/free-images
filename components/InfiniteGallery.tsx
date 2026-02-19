@@ -5,7 +5,7 @@ import { useInView } from 'react-intersection-observer';
 import { getImages } from '@/app/actions/getImages';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, X, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, X, Tag, ChevronDown } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
@@ -35,8 +35,6 @@ type Props = {
   initialTotalCount?: number;
 };
 
-const INITIAL_TAGS_SHOWN = 15;
-
 export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug = "", initialTotalCount = 0 }: Props) {
   const [images, setImages] = useState<ImageType[]>(initialImages);
   const [page, setPage] = useState(2);
@@ -46,7 +44,8 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
   const [selectedTagSlug, setSelectedTagSlug] = useState(defaultTagSlug);
   const [totalCount, setTotalCount] = useState<number>(initialTotalCount || initialImages.length);
   const [isLoading, setIsLoading] = useState(false);
-  const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
   const { ref, inView } = useInView();
   const t = useTranslations('HomePage');
   const locale = useLocale();
@@ -123,15 +122,14 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     }
   }, [inView, hasMore, isLoading, loadMoreImages]);
 
-  // 選択中のタグが表示範囲外にある場合は自動展開
+  // Escape キーでモーダルを閉じる
   useEffect(() => {
-    if (selectedTagSlug) {
-      const idx = allTags.findIndex(t => t.slug === selectedTagSlug);
-      if (idx >= INITIAL_TAGS_SHOWN) {
-        setTagsExpanded(true);
-      }
-    }
-  }, [selectedTagSlug, allTags]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setTagModalOpen(false); setTagSearch(""); }
+    };
+    if (tagModalOpen) document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [tagModalOpen]);
 
   // --- ヘルパー関数 ---
   const getLocalizedPrompt = (image: ImageType) => {
@@ -205,56 +203,106 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
       {/* タグフィルタ */}
       {allTags.length > 0 && (
         <div className="w-full max-w-4xl mt-6 mx-auto px-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Tag className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-400 font-medium">{t('tagFilterLabel')}</span>
-            {selectedTagSlug && (
-              <button
-                onClick={clearTagFilter}
-                className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
-              >
-                <X className="h-3 w-3" />
-                {t('tagFilterClear')}
-              </button>
-            )}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* モーダル開くボタン */}
+            <button
+              onClick={() => setTagModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700 rounded-full text-sm transition-all"
+            >
+              <Tag className="h-4 w-4" />
+              <span>{t('tagFilterLabel')}</span>
+              <span className="text-xs text-gray-500">({allTags.length})</span>
+              <ChevronDown className="h-3 w-3 ml-1" />
+            </button>
+            {/* 選択中タグのチップ */}
+            {selectedTagSlug && (() => {
+              const activeTag = allTags.find(tag => tag.slug === selectedTagSlug);
+              return activeTag ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-full text-sm shadow-lg shadow-indigo-500/30">
+                  <span>#{getLocalizedTagName(activeTag)}</span>
+                  <button
+                    onClick={clearTagFilter}
+                    className="ml-0.5 hover:text-indigo-200 transition-colors"
+                    aria-label={t('tagFilterClear')}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null;
+            })()}
           </div>
-          <div className="flex flex-wrap gap-2 py-2">
-              {(tagsExpanded ? allTags : allTags.slice(0, INITIAL_TAGS_SHOWN)).map((tag) => (
-                <button
-                  key={tag.id}
-                  data-slug={tag.slug}
-                  onClick={() => handleTagSelect(tag.slug)}
-                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
-                    isTagActive(tag)
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                      : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700'
-                  }`}
-                >
-                  <span>#{getLocalizedTagName(tag)}</span>
-                  <span className={`text-xs ${isTagActive(tag) ? 'text-indigo-200' : 'text-gray-500'}`}>
-                    {tag.count}
-                  </span>
-                </button>
-              ))}
-              {allTags.length > INITIAL_TAGS_SHOWN && (
-                <button
-                  onClick={() => setTagsExpanded(!tagsExpanded)}
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all bg-gray-800/40 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700 border-dashed"
-                >
-                  {tagsExpanded ? (
-                    <>
-                      <ChevronUp className="h-3 w-3" />
-                      {t('tagFilterShowLess')}
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-3 w-3" />
-                      {t('tagFilterShowMore', { count: allTags.length - INITIAL_TAGS_SHOWN })}
-                    </>
-                  )}
-                </button>
-              )}
+        </div>
+      )}
+
+      {/* タグ選択モーダル */}
+      {tagModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* 背景オーバーレイ */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => { setTagModalOpen(false); setTagSearch(""); }}
+          />
+          {/* モーダル本体 */}
+          <div className="relative bg-gray-900 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl border border-gray-700">
+            {/* ヘッダー */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-indigo-400" />
+                <span className="text-sm font-medium text-white">{t('tagFilterLabel')}</span>
+                <span className="text-xs text-gray-500">({allTags.length})</span>
+              </div>
+              <button
+                onClick={() => { setTagModalOpen(false); setTagSearch(""); }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
+            {/* 検索ボックス */}
+            <div className="px-4 py-3 border-b border-gray-700">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={t('tagModalSearchPlaceholder')}
+                  value={tagSearch}
+                  onChange={(e) => setTagSearch(e.target.value)}
+                  autoFocus
+                  className="w-full bg-gray-800 text-white placeholder-gray-500 pl-9 pr-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                />
+              </div>
+            </div>
+            {/* タググリッド */}
+            <div className="flex flex-wrap gap-2 p-4 overflow-y-auto">
+              {(() => {
+                const filtered = tagSearch.trim()
+                  ? allTags.filter(tag =>
+                      getLocalizedTagName(tag).toLowerCase().includes(tagSearch.toLowerCase())
+                    )
+                  : allTags;
+                return filtered.length > 0 ? (
+                  filtered.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => { handleTagSelect(tag.slug); setTagModalOpen(false); setTagSearch(""); }}
+                      className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
+                        isTagActive(tag)
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                          : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700'
+                      }`}
+                    >
+                      <span>#{getLocalizedTagName(tag)}</span>
+                      <span className={`text-xs ${isTagActive(tag) ? 'text-indigo-200' : 'text-gray-500'}`}>
+                        {tag.count}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm py-4">{t('tagModalNoResults')}</p>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
 
