@@ -223,7 +223,7 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
             {/* 横スクロールするタグ一覧 */}
             <div
               ref={tagScrollRef}
-              className="flex gap-2 overflow-x-auto py-5 scrollbar-hide"
+              className="flex gap-2 overflow-x-auto pt-5 pb-3 scrollbar-thin-dark"
               onScroll={(e) => {
                 sessionStorage.setItem('tagScrollPos', String(e.currentTarget.scrollLeft));
               }}
