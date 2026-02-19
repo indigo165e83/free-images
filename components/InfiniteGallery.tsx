@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { getImages } from '@/app/actions/getImages';
 import Image from 'next/image';
@@ -42,9 +42,8 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedTagSlug, setSelectedTagSlug] = useState(defaultTagSlug);
-  const [showAllTags, setShowAllTags] = useState(false);
-  
-  const [totalCount, setTotalCount] = useState<number>(initialTotalCount || initialImages.length); 
+  const [totalCount, setTotalCount] = useState<number>(initialTotalCount || initialImages.length);
+  const tagScrollRef = useRef<HTMLDivElement>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const { ref, inView } = useInView();
@@ -123,6 +122,14 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     }
   }, [inView, hasMore, isLoading, loadMoreImages]);
 
+  // タグスクロール位置を復元
+  useEffect(() => {
+    const savedPos = sessionStorage.getItem('tagScrollPos');
+    if (savedPos && tagScrollRef.current) {
+      tagScrollRef.current.scrollLeft = parseInt(savedPos, 10);
+    }
+  }, []);
+
   // --- ヘルパー関数 ---
   const getLocalizedPrompt = (image: ImageType) => {
     if (locale === 'en') return image.promptEn || image.promptJa;
@@ -173,10 +180,6 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     return selectedTagSlug === tag.slug;
   };
 
-  const VISIBLE_TAG_COUNT = 20;
-  const visibleTags = showAllTags ? allTags : allTags.slice(0, VISIBLE_TAG_COUNT);
-  const hasHiddenTags = allTags.length > VISIBLE_TAG_COUNT;
-
   return (
     <>
       {/* 検索フォーム */}
@@ -212,31 +215,37 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
               </button>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {visibleTags.map((tag) => (
-              <button
-                key={tag.id}
-                onClick={() => handleTagSelect(tag.slug)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
-                  isTagActive(tag)
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                    : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700'
-                }`}
-              >
-                <span>#{getLocalizedTagName(tag)}</span>
-                <span className={`text-xs ${isTagActive(tag) ? 'text-indigo-200' : 'text-gray-500'}`}>
-                  {tag.count}
-                </span>
-              </button>
-            ))}
-            {hasHiddenTags && (
-              <button
-                onClick={() => setShowAllTags(!showAllTags)}
-                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-800/80 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700 transition-all"
-              >
-                {showAllTags ? t('tagFilterShowLess') : t('tagFilterShowMore', { count: allTags.length - VISIBLE_TAG_COUNT })}
-              </button>
-            )}
+          <div className="relative">
+            {/* 左フェード（スクロール可能であることを示すヒント） */}
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-gray-900 to-transparent z-10" />
+            {/* 右フェード */}
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-gray-900 to-transparent z-10" />
+            {/* 横スクロールするタグ一覧 */}
+            <div
+              ref={tagScrollRef}
+              className="flex gap-2 overflow-x-auto py-5 scrollbar-hide"
+              onScroll={(e) => {
+                sessionStorage.setItem('tagScrollPos', String(e.currentTarget.scrollLeft));
+              }}
+            >
+              {allTags.map((tag) => (
+                <button
+                  key={tag.id}
+                  data-slug={tag.slug}
+                  onClick={() => handleTagSelect(tag.slug)}
+                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
+                    isTagActive(tag)
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                      : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700'
+                  }`}
+                >
+                  <span>#{getLocalizedTagName(tag)}</span>
+                  <span className={`text-xs ${isTagActive(tag) ? 'text-indigo-200' : 'text-gray-500'}`}>
+                    {tag.count}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
