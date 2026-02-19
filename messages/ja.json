@@ -27,6 +27,8 @@
     "tagFilterClear": "クリア",
     "tagFilterShowMore": "他 {count} 件を表示",
     "tagFilterShowLess": "折りたたむ",
+    "tagModalSearchPlaceholder": "タグを検索...",
+    "tagModalNoResults": "一致するタグがありません",
     "backToGalleryButton": "← ギャラリーに戻る",
     "deleteImageConfirm": "本当にこの画像を削除しますか？\nこの操作は取り消せません。",
     "deletingStatus": "削除中...",

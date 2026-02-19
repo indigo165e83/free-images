@@ -27,6 +27,8 @@
     "tagFilterClear": "Clear",
     "tagFilterShowMore": "Show {count} more",
     "tagFilterShowLess": "Show less",
+    "tagModalSearchPlaceholder": "Search tags...",
+    "tagModalNoResults": "No tags found",
     "backToGalleryButton": "← Back to Gallery",
     "deleteImageConfirm": "Are you sure you want to delete this image?\nThis action cannot be undone.",
     "deletingStatus": "Deleting...",
