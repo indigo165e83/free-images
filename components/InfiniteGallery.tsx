@@ -122,15 +122,13 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
     }
   }, [inView, hasMore, isLoading, loadMoreImages]);
 
-  // 選択中タグをスクロールして表示
+  // タグスクロール位置を復元
   useEffect(() => {
-    if (selectedTagSlug && tagScrollRef.current) {
-      const activeEl = tagScrollRef.current.querySelector(`[data-slug="${selectedTagSlug}"]`);
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
+    const savedPos = sessionStorage.getItem('tagScrollPos');
+    if (savedPos && tagScrollRef.current) {
+      tagScrollRef.current.scrollLeft = parseInt(savedPos, 10);
     }
-  }, [selectedTagSlug]);
+  }, []);
 
   // --- ヘルパー関数 ---
   const getLocalizedPrompt = (image: ImageType) => {
@@ -226,6 +224,9 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
             <div
               ref={tagScrollRef}
               className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
+              onScroll={(e) => {
+                sessionStorage.setItem('tagScrollPos', String(e.currentTarget.scrollLeft));
+              }}
             >
               {allTags.map((tag) => (
                 <button
