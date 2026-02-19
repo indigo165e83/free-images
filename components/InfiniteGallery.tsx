@@ -203,11 +203,12 @@ export default function InfiniteGallery({ initialImages, allTags, defaultTagSlug
       {/* タグフィルタ */}
       {allTags.length > 0 && (
         <div className="w-full max-w-4xl mt-6 mx-auto px-4">
-          <div className="flex flex-wrap items-center gap-3">
+          {/* ★修正: justify-center を追加して中央寄せに変更 */}
+          <div className="flex flex-wrap justify-center items-center gap-3">
             {/* モーダル開くボタン */}
             <button
               onClick={() => setTagModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700 rounded-full text-sm transition-all"
+              className="flex items-center gap-2 px-10 py-4 bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700 rounded-full text-lg transition-all"
             >
               <Tag className="h-4 w-4" />
               <span>{t('tagFilterLabel')}</span>
